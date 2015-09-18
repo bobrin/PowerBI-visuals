@@ -24,6 +24,8 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="../_references.ts"/>
+
 module powerbi.visuals {
 
     var BeautifiedFormat: { [x: string]: string } = {
@@ -40,6 +42,8 @@ module powerbi.visuals {
         'NegativeInfinityValue': '-Infinity',
         'Restatement_Comma': '{0}, {1}',
         'Restatement_CompoundAnd': '{0} and {1}',
+        'DisplayUnitSystem_EAuto_Title': 'Auto',
+        'DisplayUnitSystem_E0_Title': 'None',
         'DisplayUnitSystem_E3_LabelFormat': '{0}K',
         'DisplayUnitSystem_E3_Title': 'Thousands',
         'DisplayUnitSystem_E6_LabelFormat': '{0}M',
@@ -50,6 +54,7 @@ module powerbi.visuals {
         'DisplayUnitSystem_E12_Title': 'Trillions',
         'Percentage': '#,0.##%',
         'Percentage1': '#,0.#%',
+        'RichTextbox_Link_DefaultText': 'Link',
         'TableTotalLabel': 'Total',
         'Tooltip_HighlightedValueDisplayName': 'Highlighted',
         // Geotagging strings
@@ -88,6 +93,10 @@ module powerbi.visuals {
         'GeotaggingString_ZipCodes': 'zip codes',
         'GeotaggingString_Territory': 'territory',
         'GeotaggingString_Territories': 'territories',
+        'Waterfall_IncreaseLabel': 'Increase',
+        'Waterfall_DecreaseLabel': 'Decrease',
+        'Waterfall_TotalLabel': 'Total',
+        'Slicer_SelectAll': 'Select All',
     };
 
     export class DefaultVisualHostServices implements IVisualHostServices {
@@ -96,8 +105,12 @@ module powerbi.visuals {
             visuals.valueFormatter.setLocaleOptions(DefaultVisualHostServices.createLocaleOptions());
             visuals.TooltipManager.setLocalizedStrings(DefaultVisualHostServices.createTooltipLocaleOptions());
         }
-
-        // Public for testability
+        
+        /**
+         * Create locale options.
+         * 
+         * Note: Public for testability.
+         */
         public static createLocaleOptions(): visuals.ValueFormatterLocalizationOptions {
            return {
                 null: defaultLocalizedStrings['NullValue'],
@@ -143,8 +156,10 @@ module powerbi.visuals {
         }
 
         private static describeUnit(exponent: number): DisplayUnitSystemNames {
-            var title: string = defaultLocalizedStrings["DisplayUnitSystem_E" + exponent + "_Title"];
-            var format: string = defaultLocalizedStrings["DisplayUnitSystem_E" + exponent + "_LabelFormat"];
+            var exponentLookup = (exponent === -1) ? 'Auto' : exponent.toString();
+
+            var title: string = defaultLocalizedStrings["DisplayUnitSystem_E" + exponentLookup + "_Title"];
+            var format: string = (exponent <= 0) ? '{0}' : defaultLocalizedStrings["DisplayUnitSystem_E" + exponentLookup + "_LabelFormat"];
 
             if (title || format)
                 return { title: title, format: format };

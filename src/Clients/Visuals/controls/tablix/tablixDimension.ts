@@ -24,6 +24,8 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="../../_references.ts"/>
+
 module powerbi.visuals.controls {
 
     export class TablixDimension {
@@ -52,7 +54,7 @@ module powerbi.visuals.controls {
             this.scrollOffset = 0;
         }
 
-        public _onStartRenderingIteration(clear: boolean): void { // The intent to be internal
+        public _onStartRenderingIteration(): void { // The intent to be internal
             this.updateScrollPosition();
         }
 
@@ -177,8 +179,8 @@ module powerbi.visuals.controls {
         }
 
         /**
-        * This method first populates the footer followed by each row and their correlating body cells from top to bottom.
-        **/
+         * This method first populates the footer followed by each row and their correlating body cells from top to bottom.
+         */
         public _render() { // The intent to be internal
             var firstVisibleRowItem: any = this.getFirstVisibleItem(0);
 
@@ -197,10 +199,10 @@ module powerbi.visuals.controls {
         }
 
         /**
-        * addNodes is a recursive call (with its recursive behavior in addNode()) that will navigate
-        * through the row hierarchy in DFS (Depth First Search) order and continue into a single row
-        * upto its estimated edge.
-        **/
+         * This function is a recursive call (with its recursive behavior in addNode()) that will navigate
+         * through the row hierarchy in DFS (Depth First Search) order and continue into a single row
+         * upto its estimated edge.
+         */
         private addNodes(items: any, rowIndex: number, depth: number, firstVisibleIndex: number) {
             var count = this._hierarchyNavigator.getCount(items);
 
@@ -231,12 +233,12 @@ module powerbi.visuals.controls {
         }
 
         /**
-        * This method can be thought of as the continuation of addNodes() as it continues the DFS (Depth First Search)
-        * started from addNodes(). This function also handles ending the recursion with "_needsToRealize" being set to 
-        * false.
-        *
-        * Once the body cells are reached, populating is done linearly with addBodyCells().
-        **/
+         * This method can be thought of as the continuation of addNodes() as it continues the DFS (Depth First Search)
+         * started from addNodes(). This function also handles ending the recursion with "_needsToRealize" being set to 
+         * false.
+         *
+         * Once the body cells are reached, populating is done linearly with addBodyCells().
+         */
         private addNode(item: any, items: any, rowIndex: number, depth: number): ITablixCell {
             var previousCount: number;
             var rowHeaderCell: ITablixCell = this._tablixLayoutManager.getOrCreateRowHeader(item, items, rowIndex, this._hierarchyNavigator.getLevel(item));

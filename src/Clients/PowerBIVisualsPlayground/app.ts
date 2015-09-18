@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Power BI Visualizations
  *
  *  Copyright (c) Microsoft Corporation
@@ -24,111 +24,148 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="_references.ts"/>
+
 interface JQuery {
-    // Demonstrates how Power BI visual creation could be implemented as jQuery plugin
-    visual(plugin: Object, dataView: Object): JQuery;
+    /** Demonstrates how Power BI visual creation could be implemented as jQuery plugin */
+    visual(plugin: Object, dataView?: Object): JQuery;
 }
 
 module powerbi.visuals {
     
     import defaultVisualHostServices = powerbi.visuals.defaultVisualHostServices;
-    import DataViewTransform = powerbi.data.DataViewTransform;
 
-    var dataColors: DataColorPalette = new powerbi.visuals.DataColorPalette();
-
-    var visualStyle: IVisualStyle = {
-        titleText: {
-            color: { value: 'rgba(51,51,51,1)' }
-        },
-        subTitleText: {
-            color: { value: 'rgba(145,145,145,1)' }
-        },
-        colorPalette: {
-            dataColors: dataColors,
-        },
-        labelText: {
-            color: {
-                value: 'rgba(51,51,51,1)',
-            },
-            fontSize: '11px'
-        },
-        isHighContrast: false,
-    };
+    import HostControls = powerbi.visuals.HostControls;
 
     /**
-     * Demonstrates Power BI visualization elements and the way to embeed them in standalone web page.
+     * Demonstrates Power BI visualization elements and the way to embed them in standalone web page.
      */
     export class Playground {
 
-        // Represents sample data view used by visualization elements.
-        private static pluginService: IVisualPluginService = powerbi.visuals.visualPluginFactory.create();
+        /** Represents sample data view used by visualization elements. */
+        private static pluginService: IVisualPluginService = new powerbi.visuals.visualPluginFactory.PlaygroundVisualPluginService();
+        private static currentVisual: IVisual;
 
-        // Represents sample data view used by visualization elements.
-        private static dataView: DataView[];
+        private static hostControls: HostControls;
+        private static container: JQuery;
+        private static visualHostElement: JQuery;
+        private static interactionsEnabledCheckbox: JQuery;
 
-        // Performs sample app initialization.
+        private static visualStyle: IVisualStyle = {
+            titleText: {
+                color: { value: 'rgba(51,51,51,1)' }
+            },
+            subTitleText: {
+                color: { value: 'rgba(145,145,145,1)' }
+            },
+            colorPalette: {
+                dataColors: new powerbi.visuals.DataColorPalette(),
+            },
+            labelText: {
+                color: {
+                    value: 'rgba(51,51,51,1)',
+                },
+                fontSize: '11px'
+            },
+            isHighContrast: false,
+        };
+
+        /** Performs sample app initialization.*/
         public static initialize(): void {
+            this.interactionsEnabledCheckbox = $("input[name='is_interactions']");
+            this.container = $('#container');
+            this.hostControls = new HostControls($('#options'));
+            this.hostControls.setElement(this.container);
 
             this.populateVisualTypeSelect();
-
-            // Wrapper function to simplify visuallization element creation when using jQuery
-            $.fn.visual = function (plugin: IVisualPlugin, dataView: DataView[]) {
+            powerbi.visuals.DefaultVisualHostServices.initialize();
+            // Wrapper function to simplify visualization element creation when using jQuery
+            $.fn.visual = function (plugin: IVisualPlugin, dataView?: DataView[]) {
 
                 // Step 1: Create new DOM element to represent Power BI visual
-                var element = $('<div/>');
+                let element = $('<div/>');
                 element.addClass('visual');
-                element.css({
-                    'background-color': 'white',
-                    'padding': '10px',
-                    'margin': '5px'
-                });
                 element['visible'] = () => { return true; };
                 this.append(element);
 
-                // Step 2: Instantiate Power BI visual
-                var host = $('#itemContainer');
-                var viewport: IViewport = { height: host.height(), width: host.width() };
-                var visualElement = plugin.create();
-                visualElement.init({
-                    element: element,
-                    host: defaultVisualHostServices,
-                    style: visualStyle,
-                    viewport: viewport,
-                    settings: { slicingEnabled: true },
-                    interactivity: { isInteractiveLegend: false, selection: false },
-                    animation: { transitionImmediate: true }
-                });
-
-                if (visualElement.update) {
-                    visualElement.update({ dataViews:dataView, duration: 250, viewport: viewport});
-                } else if (visualElement.onDataChanged) {
-                    visualElement.onDataChanged({ dataViews: dataView });
-                }
-
+                Playground.createVisualElement(element, plugin, dataView);
                 return this;
             };
+
+            this.interactionsEnabledCheckbox.on('change', () => {
+                this.visualHostElement.empty();
+                this.initVisual();
+                this.hostControls.update();
+            });
+
+            let visualByDefault = jsCommon.Utility.getURLParamValue('visual');
+            if (visualByDefault) {
+                $('.topBar, #options').css({ "display": "none" });
+                Playground.onVisualTypeSelection(visualByDefault.toString());
+            } else {
+                this.onVisualTypeSelection($('#visualTypes').val());
+            }
+        }
+
+        private static createVisualElement(element: JQuery, plugin: IVisualPlugin, dataView?: DataView[]) {
+
+            // Step 2: Instantiate Power BI visual
+            this.currentVisual = plugin.create();
+            this.visualHostElement = element;
+            this.hostControls.setVisual(this.currentVisual);
+            this.initVisual();
+        }
+
+        private static initVisual() {
+            this.currentVisual.init({
+                element: this.visualHostElement,
+                host: defaultVisualHostServices,
+                style: this.visualStyle,
+                viewport: this.hostControls.getViewport(),
+                settings: { slicingEnabled: true },
+                interactivity: { isInteractiveLegend: false, selection: this.interactionsEnabledCheckbox.is(':checked') },
+            });
         }
 
         private static populateVisualTypeSelect(): void {
+           
+            let typeSelect = $('#visualTypes');
+            //typeSelect.append('<option value="">(none)</option>');
 
-            var typeSelect = $('#visualTypes');
-            typeSelect.append('<option value="">(none)</option>');
+            let visuals = this.pluginService.getVisuals();
+            visuals.sort(function (a, b) {
+                if (a.name < b.name) return -1;
+                if (a.name > b.name) return 1;
+                return 0;
+            });
 
-            var visuals = this.pluginService.getVisuals();
-            for (var i = 0, len = visuals.length; i < len; i++) {
-                var visual = visuals[i];
+            for (let i = 0, len = visuals.length; i < len; i++) {
+                let visual = visuals[i];
+                if (visual.name === 'basicShape') continue;
                 typeSelect.append('<option value="' + visual.name + '">' + visual.name + '</option>');
             }
 
             typeSelect.change(() => this.onVisualTypeSelection(typeSelect.val()));
         }
 
-        private static onVisualTypeSelection(plauginName: string): void {
+        private static onVisualTypeSelection(pluginName: string): void {
+            if (pluginName.length === 0) {
+                return;
+            }
 
-            $('#itemContainer').empty();
-            var plugin = this.pluginService.getPlugin(plauginName);
-            var sampleDataView = sampleData.getVisualizationData(plauginName);
-            $('#itemContainer').visual(plugin, sampleDataView);
+            this.createVisualPlugin(pluginName);
+            this.hostControls.onPluginChange(pluginName);
         }        
-    }
+
+        private static createVisualPlugin(pluginName: string): void {
+            this.container.children().not(".ui-resizable-handle").remove();
+
+            let plugin = this.pluginService.getPlugin(pluginName);
+            if (!plugin) {
+                this.container.append('<div class="wrongVisualWarning">Wrong visual name <span>\'' + pluginName + '\'</span> in parameters</div>'); return;
+            }
+            this.container.visual(plugin);
+        }       
+        
+    }   
 }

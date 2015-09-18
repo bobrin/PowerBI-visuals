@@ -24,6 +24,8 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="../_references.ts"/>
+
 module powerbi.visuals {
     var rectName = 'rect';
 
@@ -124,7 +126,8 @@ module powerbi.visuals {
             layout: CategoryLayout,
             isVertical: boolean,
             forcedXMin?: DataViewPropertyValue,
-            forcedXMax?: DataViewPropertyValue): IAxisProperties {
+            forcedXMax?: DataViewPropertyValue,
+            axisScaleType?: string): IAxisProperties {
 
             var categoryThickness = layout.categoryThickness;
             var isScalar = layout.isScalar;
@@ -143,7 +146,8 @@ module powerbi.visuals {
                 isVertical: isVertical,
                 categoryThickness: categoryThickness,
                 useTickIntervalForDisplayUnits: true,
-                getValueFn: (index, type) => dw.lookupXValue(index, type)
+                getValueFn: (index, type) => dw.lookupXValue(index, type),
+                scaleType: axisScaleType
             });
 
             // intentionally updating the input layout by ref
@@ -247,15 +251,18 @@ module powerbi.visuals {
         }
 
         export function drawDefaultLabels(series: D3.UpdateSelection, context: D3.Selection, layout: ILabelLayout, viewPort: IViewport, isAnimator: boolean = false, animationDuration?: number): D3.UpdateSelection {
-            if (series && series.data().length > 0) {
+            if (series) {
                 var seriesData = series.data();
-                var dataPoints: LineChartDataPoint[] = [];
+                var dataPoints: ColumnChartDataPoint[] = [];
 
                 for (var i = 0, len = seriesData.length; i < len; i++) {
                     Array.prototype.push.apply(dataPoints, seriesData[i].data);
                 }
 
                 return dataLabelUtils.drawDefaultLabelsForDataPointChart(dataPoints, context, layout, viewPort, isAnimator, animationDuration);
+            }
+            else {
+                dataLabelUtils.cleanDataLabels(context);
             }
         }
 
@@ -272,6 +279,27 @@ module powerbi.visuals {
             }
 
             scale.domain(scaledDomain);
+        }
+
+        export function calculatePosition(d: ColumnChartDataPoint, axisOptions: ColumnAxisOptions): number {
+            var xScale = axisOptions.xScale;
+            var yScale = axisOptions.yScale;
+            var scaledY0 = yScale(0);
+            var scaledX0 = xScale(0);
+            switch (d.chartType) {
+                case ColumnChartType.stackedBar:
+                case ColumnChartType.hundredPercentStackedBar:
+                    return scaledX0 + Math.abs(AxisHelper.diffScaled(xScale, 0, d.valueAbsolute)) +
+                        AxisHelper.diffScaled(xScale, d.position - d.valueAbsolute, 0) + dataLabelUtils.defaultColumnLabelMargin;
+                case ColumnChartType.clusteredBar:
+                    return scaledX0 + AxisHelper.diffScaled(xScale, Math.max(0, d.value), 0) + dataLabelUtils.defaultColumnLabelMargin;
+                case ColumnChartType.stackedColumn:
+                case ColumnChartType.hundredPercentStackedColumn:
+                    return scaledY0 + AxisHelper.diffScaled(yScale, d.position, 0) - dataLabelUtils.defaultColumnLabelMargin;
+                case ColumnChartType.clusteredColumn:
+                    return scaledY0 + AxisHelper.diffScaled(yScale, Math.max(0, d.value), 0) - dataLabelUtils.defaultColumnLabelMargin;
+            }
+
         }
     }
 
@@ -340,8 +368,8 @@ module powerbi.visuals {
             size: number,
             scaleRange: number[],
             forcedTickCount?: number,
-            forcedYDomain?: any[]
-            ): IAxisProperties {
+            forcedYDomain?: any[],
+            axisScaleType?: string): IAxisProperties {
             var valueDomain = calcValueDomain(data.series, is100Pct),
                 min = valueDomain.min,
                 max = valueDomain.max;
@@ -350,18 +378,29 @@ module powerbi.visuals {
             var bestTickCount = ColumnUtil.getTickCount(min, max, data.valuesMetadata, maxTickCount, is100Pct, forcedTickCount);
             var normalizedRange = AxisHelper.normalizeLinearDomain({ min: min, max: max });
             var valueDomainNorm = [normalizedRange.min, normalizedRange.max];
+            var axisType = ValueType.fromDescriptor({ numeric: true });
 
-            var combinedDomain = AxisHelper.combineDomain(forcedYDomain, valueDomainNorm);
+            var combinedDomain = AxisHelper.combineDomain(forcedYDomain, valueDomainNorm);  
+            var isLogScaleAllowed = AxisHelper.isLogScalePossible(combinedDomain, axisType);                                  
+            var useLogScale = axisScaleType && axisScaleType === axisScale.log && isLogScaleAllowed;
 
-            var scale = d3.scale.linear()
-                .range(scaleRange)
+            var scale = useLogScale ? d3.scale.log() : d3.scale.linear();
+
+            scale.range(scaleRange)
                 .domain(combinedDomain)
                 .nice(bestTickCount || undefined)
-                .clamp(AxisHelper.scaleShouldClamp(combinedDomain, valueDomainNorm));
+                .clamp(AxisHelper.scaleShouldClamp(combinedDomain, valueDomainNorm));     
 
             ColumnUtil.normalizeInfinityInScale(scale);
 
-            var yTickValues: any[] = AxisHelper.getRecommendedTickValuesForALinearRange(bestTickCount, scale);
+            var dataType: ValueType = AxisHelper.getCategoryValueType(data.valuesMetadata[0], true);
+            var formatString = valueFormatter.getFormatString(data.valuesMetadata[0], columnChartProps.general.formatString);
+            var minTickInterval = AxisHelper.getMinTickValueInterval(formatString, dataType);
+            var yTickValues: any[] = AxisHelper.getRecommendedTickValuesForAQuantitativeRange(bestTickCount, scale, minTickInterval);
+
+            if (useLogScale) {
+                yTickValues = yTickValues.filter((d) => { return AxisHelper.powerOfTen(d); });
+            }
 
             var d3Axis = d3.svg.axis()
                 .scale(scale)
@@ -374,16 +413,17 @@ module powerbi.visuals {
                 yInterval);
             d3Axis.tickFormat(yFormatter.format);
 
-            var values = yTickValues.map((d: ColumnChartDataPoint) => yFormatter.format(d));
+            var values = yTickValues.map((d: ColumnChartDataPoint) => yFormatter.format(d));            
 
             return {
                 axis: d3Axis,
                 scale: scale,
                 formatter: yFormatter,
                 values: values,
-                axisType: ValueType.fromDescriptor({ numeric: true }),
+                axisType: axisType,
                 axisLabel: null,
-                isCategoryAxis: false
+                isCategoryAxis: false,
+                isLogScaleAllowed: isLogScaleAllowed
             };
         }
 

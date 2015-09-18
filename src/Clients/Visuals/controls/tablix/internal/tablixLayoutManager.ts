@@ -24,11 +24,14 @@
  *  THE SOFTWARE.
  */
 
-module powerbi.visuals.controls.internal {
+/// <reference path="../../../_references.ts"/>
 
-    /** This class is used for layouts that don't or cannot
-        rely on DOM measurements.  Instead they compute all required
-        widths and heights and store it in this structure. */
+module powerbi.visuals.controls.internal {
+    /**
+     * This class is used for layouts that don't or cannot
+     * rely on DOM measurements.  Instead they compute all required
+     * widths and heights and store it in this structure.
+     */
     export class SizeComputationManager {
 
         // Unfortunately since we are doing manual layout, we need to hardcode some layout properties here.
@@ -98,11 +101,11 @@ module powerbi.visuals.controls.internal {
             }
             else if (width <= 510) {
                 // Medium
-                return this.fitToColumnCount(4, totalColumnCount);
+                return this.fitToColumnCount(6, totalColumnCount);
             }
             else if (width <= 770) {
                 // Large
-                return this.fitToColumnCount(7, totalColumnCount);
+                return this.fitToColumnCount(9, totalColumnCount);
             }
 
             debug.assertFail("Fixed size is only for viewport up to 770px width.");
@@ -241,8 +244,8 @@ module powerbi.visuals.controls.internal {
         }
 
         /**
-        *   Implementing classes must override this to send dimentions to TablixControl
-        **/
+         * Implementing classes must override this to send dimentions to TablixControl.
+         */
         public _sendDimensionsToControl(): void { //extending class overrides this
             debug.assertFail("PureVirtualMethod: DimensionLayoutManager._sendDimensionsToControl");
         }
@@ -346,7 +349,8 @@ module powerbi.visuals.controls.internal {
         }
 
         public getRealizedItemsCount(): number {
-            return this._getRealizedItems().length;
+            var realizedItems = this._getRealizedItems();
+            return realizedItems.length;
         }
 
         public _moveElementsToBottom(moveFromIndex: number, count): void {
@@ -460,7 +464,11 @@ module powerbi.visuals.controls.internal {
         }
 
         private getItemContextualWidth(index: number): number {
-            return this._getRealizedItems()[index].getContextualWidth();
+            var realizedItems = this._getRealizedItems();
+            if (index >= realizedItems.length)
+                return null;
+
+            return realizedItems[index].getContextualWidth();
         }
 
         private getItemContextualWidthWithScrolling(index: number): number {
@@ -706,7 +714,11 @@ module powerbi.visuals.controls.internal {
             return 0;
         }
 
-        public _getRealizedItems(): ITablixGridItem[]{
+        public _getRealizedItems(): ITablixGridItem[] {
+            if (!this._grid.realizedColumns) {
+                this._grid.realizedColumns = [];
+            }
+
             return this._grid.realizedColumns;
         }
 
@@ -839,8 +851,8 @@ module powerbi.visuals.controls.internal {
         }
 
         /**
-        *   Sends column related data (pixel size, column count, etc) to TablixControl
-        **/
+         * Sends column related data (pixel size, column count, etc) to TablixControl.
+         */
         public _sendDimensionsToControl(): void {
             var gridContextualWidth: number = this.getGridContextualWidth();
             var widthToFill: number = this.getActualContextualWidth(gridContextualWidth);
@@ -946,7 +958,11 @@ module powerbi.visuals.controls.internal {
             super.startScrollingSession();
         }
 
-        public _getRealizedItems(): ITablixGridItem[]{
+        public _getRealizedItems(): ITablixGridItem[] {
+            if (!this._grid.realizedRows) {
+                this._grid.realizedRows = [];
+            }
+
             return this._grid.realizedRows;
         }
 
@@ -959,7 +975,7 @@ module powerbi.visuals.controls.internal {
         }
 
         public _requiresMeasure(): boolean {
-            // if the control is not scrolling in either dimension and the column dimension is not resizing or row fdimension is scrolling and reaching the end while scrolling 
+            // if the control is not scrolling in either dimension and the column dimension is not resizing or row dimension is scrolling and reaching the end while scrolling 
             return (!this.isScrolling() && !this.otherLayoutManager.isScrolling() && !this.otherLayoutManager.isResizing())
                 || (this.isScrolling() && (this.dimension.getIntegerScrollOffset() + (this.getRealizedItemsCount() - this._gridOffset) >= this.dimension.getItemsCount()));
         }
@@ -1031,8 +1047,8 @@ module powerbi.visuals.controls.internal {
         }
 
         /**
-        *   Sends row related data (pixel size, column count, etc) to TablixControl
-        **/
+         * Sends row related data (pixel size, column count, etc) to TablixControl.
+         */
         public _sendDimensionsToControl(): void {
             var gridContextualWidth: number = this.getGridContextualWidth();
             var widthToFill: number = this.getActualContextualWidth(gridContextualWidth);
@@ -1252,10 +1268,12 @@ module powerbi.visuals.controls.internal {
         }
 
         /**
-        * This call makes room for parent header cells where neccessary. Since HTML cells that span vertically displace other rows,
-        * room has to be made for spanning headers that leave an exiting row to enter the new row that it starts from and removed when
-        * returning to an entering row.
-        **/
+         * This call makes room for parent header cells where neccessary.
+         * Since HTML cells that span vertically displace other rows,
+         * room has to be made for spanning headers that leave an exiting 
+         * row to enter the new row that it starts from and removed when
+         * returning to an entering row.
+         */
         private alignRowHeaderCells(item: any, currentRow: TablixRow): void {
             var index = currentRow.getRowHeaderLeafIndex();
 
@@ -1290,7 +1308,7 @@ module powerbi.visuals.controls.internal {
             return false;
         }
 
-        public onStartRenderingSession(scrollingDimension: TablixDimension, parentElement: HTMLElement): void {
+        public onStartRenderingSession(scrollingDimension: TablixDimension, parentElement: HTMLElement, clear: boolean): void {
             if (this.showEmptySpaceHeader()) {
                 var cell: ITablixCell = this._grid.emptySpaceHeaderCell;
                 if (cell) {
@@ -1311,9 +1329,9 @@ module powerbi.visuals.controls.internal {
                 (<DimensionLayoutManager>this._scrollingDimension.layoutManager).startScrollingSession();
             }
 
-            this._grid.onStartRenderingSession();
             this._rowLayoutManager.onStartRenderingSession();
             this._columnLayoutManager.onStartRenderingSession();
+            this._grid.onStartRenderingSession(clear);
 
             var measureEnabled = this._columnLayoutManager.measureEnabled || this._rowLayoutManager.measureEnabled;
             if (measureEnabled)
@@ -1345,14 +1363,12 @@ module powerbi.visuals.controls.internal {
                     }
                 }
             }
-
-            this._grid.onEndRenderingSession();
         }
 
         public onStartRenderingIteration(clear: boolean): void {
             this._rowLayoutManager.onStartRenderingIteration(clear, this.getVisibleHeight());
             this._columnLayoutManager.onStartRenderingIteration(clear, this.getVisibleWidth());
-            this._grid.onStartRenderingIteration(clear); // TODO clearing should happen only once before the loop
+            this._grid.onStartRenderingIteration();
         }
 
         public onEndRenderingIteration(): boolean {

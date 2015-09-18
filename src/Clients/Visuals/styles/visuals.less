@@ -28,7 +28,10 @@
 @import "../../PowerBI/styles/colorPalette.less";
 @import "../../PowerBI/styles/fonts.less";
 @import "../../PowerBI/styles/mixins.less";
+@import "../../PowerBI/styles/constants.less";
 @import (optional) "bingNews.less";
+@import (optional) "bingSocialTweets.less";
+@import (optional) "bingSocialNews.less";
 @import (optional) "webChart.less";
 @import (optional) "partitionMap.less";
 @import (optional) "sunburstChart.less";
@@ -46,6 +49,7 @@
             .sprite(@slicer-checkbox);
             opacity: 0.5;
             margin-right: 5px;
+            vertical-align: middle;
         }
 
         &:hover span::before {
@@ -56,7 +60,12 @@
             .sprite(@slicer-checkbox-selected);
             opacity: 1;
         }
-     }
+
+        input.partiallySelected + span::before {
+            .sprite(@slicer-partially-selected);
+            opacity: 1;
+        }
+    }
     .slicerHeader {
         border-bottom-color: @neutralLightColor;
         border-bottom-width: 1px;
@@ -68,9 +77,11 @@
         color: @neutralPrimaryColor;
         font-size: 14px;
         text-overflow: ellipsis;
-        display: inline-block;
+        display: block;
         overflow: hidden;
         white-space: nowrap;
+        width: auto;
+        float: none;
     }
     .slicerItemContainer {
         // This is referred in slicer.ts to calculate total item height. Any changes to these values should also be updated in the ts file
@@ -81,9 +92,10 @@
         font-size: 14px;
         text-overflow: ellipsis;
         display: inline-block;
-        overflow-x: hidden;
+        overflow: hidden;
         white-space: nowrap;
         line-height: 1.2;
+        cursor: pointer;
     }
     .clear {
         .sprite(@slicer-reset);
@@ -95,6 +107,16 @@
 }
 
 .visual svg {
+        &.legend {
+        .navArrow{
+            fill: @neutralPrimaryColor;
+            cursor: pointer;
+            /* stroke enabled for a bigger click target, but smaller visible arrow size */
+            stroke: @whiteColor;
+            stroke-width: 2px;
+        }
+    }
+
     .showLinesOnAxis {
         path {
             display: none;
@@ -105,6 +127,10 @@
                 stroke: @chartAxisGridLineColor;
                 stroke-width: 1px;
                 padding-left: 10px;
+
+                &.zero-line {
+                    stroke: @neutralTertiaryColor;
+                }
             }
         }
     }
@@ -307,11 +333,27 @@
 }
 
 .funnelChart {
+    line {
+        shape-rendering: crispEdges;
+    }
+
+    .percentBars {
+        line {
+            fill: none;
+            stroke: @neutralTertiaryColor;
+            stroke-width: 1px;
+        }
+
+        text {
+            text-anchor: middle;
+            font-family: @regularSecondaryFontFamily;
+        }
+    }
+
     .axis {
         path, line {
             fill: none;
             stroke: #000;
-            shape-rendering: crispEdges;
         }
 
         .data-labels {
@@ -544,7 +586,6 @@
 
         .bi-table-cell-numeric {
             text-align: right;
-            padding: 0px 0px 0px 10px;
         }
 
         .bi-table-row {
@@ -592,6 +633,13 @@
             padding: 0px 0px 0px 0px;
         }
 
+        .bi-tablix-row-header-toplevel-static-leaf {
+            border-right-width: 1px;
+            border-right-color: #CCCCCC;
+            border-right-style: solid;
+            padding: 0px 5px 0px 10px;
+        }
+
         .bi-tablix-column-header-leaf {
             border-bottom-width: 1px;
             border-bottom-color: #CCCCCC;
@@ -612,7 +660,7 @@
         }
 
         .total {
-            font-weight: bold;
+            font-family: @boldFontFamily;
         }
 
         .scroll-bar-div {
@@ -696,7 +744,6 @@
 
         .bi-table-cell-numeric {
             text-align: right;
-            padding: 0px 0px 0px 10px;
         }
 
         .bi-table-row {
@@ -720,14 +767,15 @@
             border-top-width: 1pt;
             border-top-style: solid;
             border-top-color: #CCCCCC;
-            font-family: @semiboldFontFamily;
+            font-family: @regularFontFamily;
+            font-weight: bold;
             color: @neutralPrimaryColor;
             font-size: 11px;
             padding: 0px 5px 0px 10px;
         }
 
         .bi-tablix-header {
-            padding: 0px 0px 0px 0px;
+            padding: 0px 5px 0px 10px;
         }
 
         .bi-tablix-row-header-leaf {
@@ -742,6 +790,13 @@
             border-right-color: #CCCCCC;
             border-right-style: solid;
             padding: 0px 0px 0px 0px;
+        }
+
+        .bi-tablix-row-header-toplevel-static-leaf {
+            border-right-width: 1px;
+            border-right-color: #CCCCCC;
+            border-right-style: solid;
+            padding: 0px 5px 0px 10px;
         }
 
         .bi-tablix-column-header-leaf {
@@ -761,6 +816,7 @@
 
         .total {
             font-weight: bold;
+            font-family: @regularFontFamily;
         }
     }
 }
@@ -915,6 +971,7 @@
     font-size: 11px;
     background-color: @neutralPrimaryColor;
     pointer-events: none;
+    z-index: @tooltip-z-index;
 
     .tooltip-content-container {
         padding: 12px;
@@ -974,7 +1031,7 @@
 .data-labels {
     font-size: 12px;
     text-anchor: middle;
-    font-family: @semiboldFontFamily;
+    font-family: @regularSecondaryFontFamily;
     /* Enables tooltip when hovering on data label inside visual */
     pointer-events: none;
 }
@@ -984,10 +1041,11 @@
 
     .ql-container {
         padding: 0px;
+        cursor: auto;
     }
 
     .ql-editor {
-        padding: 10px;
+        line-height: normal;
     }
 }
 
@@ -1033,6 +1091,62 @@ div.ql-toolbar {
         vertical-align: middle;
     }
 
+    .toolbar-url-input {
+        display: inline-block;
+        vertical-align: middle;
+
+        .ql-link div {
+            height: 100%;
+        }
+
+        .ql-link-tooltip {
+            display: none;
+
+            top: 0 !important;
+            left: 0 !important;
+            position: relative;
+            margin: 0 3px;
+            padding: 0px;
+            line-height: 100%;
+            vertical-align: middle;
+            border: none;
+            background-color: inherit;
+
+            input {
+                color: @neutralPrimaryColor;
+            }
+
+            a {
+                margin: 0 3px;
+                color: @secondaryChromeFontColor;
+
+                &:hover {
+                    color: @highlightColor;
+                }
+            }
+
+            .bar {
+                font-size: 18px;
+                color: @secondaryChromeFontColor;
+            }
+
+            .change {
+                display: none;
+            }
+        }
+
+        .ql-link-tooltip.editing {
+            .bar {
+                display: none;
+            }
+        }
+
+        .ql-link.ql-active + .ql-link-tooltip,
+        .ql-link-tooltip.editing {
+            display: inline-block;
+        }
+    }
+
     .ql-format-button:hover {
         background: @themePrimaryColor;
         color: @neutralPrimaryColor;
@@ -1051,11 +1165,19 @@ div.ql-toolbar {
         .sprite(@left-align-text-black);
     }
 
+    .ql-format-button[data-value="left"]:hover {
+        .sprite(@left-align-text-black);
+    }
+
     .ql-format-button[data-value="right"] {
         .sprite(@right-align-text-white);
     }
 
     .ql-format-button[data-value="right"].ql-active {
+        .sprite(@right-align-text-black);
+    }
+
+    .ql-format-button[data-value="right"]:hover {
         .sprite(@right-align-text-black);
     }
 
@@ -1067,11 +1189,19 @@ div.ql-toolbar {
         .sprite(@center-align-text-black);
     }
 
+    .ql-format-button[data-value="center"]:hover {
+        .sprite(@center-align-text-black);
+    }
+
     .ql-format-button.ql-bold {
         .sprite(@bold-text-white);
     }
 
     .ql-format-button.ql-bold.ql-active {
+        .sprite(@bold-text-black);
+    }
+
+    .ql-format-button.ql-bold:hover {
         .sprite(@bold-text-black);
     }
 
@@ -1083,6 +1213,10 @@ div.ql-toolbar {
         .sprite(@italic-text-black);
     }
 
+    .ql-format-button.ql-italic:hover {
+        .sprite(@italic-text-black);
+    }
+
     .ql-format-button.ql-underline {
         .sprite(@underline-text-white);
     }
@@ -1090,12 +1224,29 @@ div.ql-toolbar {
     .ql-format-button.ql-underline.ql-active {
         .sprite(@underline-text-black);
     }
+
+    .ql-format-button.ql-underline:hover {
+        .sprite(@underline-text-black);
+    }
+
+    .ql-format-button.ql-link {
+        .sprite(@insert-link-white);
+    }
+
+    .ql-format-button.ql-link.ql-active {
+        .sprite(@insert-link-black);
+    }
+
+    .ql-format-button.ql-link:hover {
+        .sprite(@insert-link-black);
+    }
 }
 
 .multiRowCard {
     .card {
         .title {
-            font-size: 28px;
+            // Update the title height in multiRowCard.ts when the font size is updated
+            font-size: 18px;
             font-family: @semiboldFontFamily;   
             white-space: nowrap;    
             text-overflow: ellipsis;   
@@ -1106,4 +1257,84 @@ div.ql-toolbar {
 
 .clearCatcher {
     fill-opacity: 0;
+}
+
+.visual.owlGaugeVisual {
+    overflow: hidden;
+
+    &.sad {
+        .owlGaugeBg {
+            .st0{ fill:#EF4137; }
+            .st1{ fill:#FAAF42; }
+            .st2{ fill:#F15B2A; }
+            .st3{ fill:#F15B2A; }
+        }
+
+        .owlGaugeTail {
+            animation: owlTailAmbientAnimation 2.5s infinite;
+        }
+    }
+
+    &.meh {
+        .owlGaugeBg {
+            .st0{ fill:#F18D05; }
+            .st1{ fill:#FAAF42; }
+            .st2{ fill:#F15B2A; }
+            .st3{ fill:#F15B2A; }
+        }
+
+        .owlGaugeTail {
+            animation: owlTailAmbientAnimation 1.5s infinite;
+        }
+    }
+
+    &.happy {
+        .owlGaugeBg {
+            .st0{ fill:#32742C; }
+            .st1{ fill:#D0D102; }
+            .st2{ fill:#61AE24; }
+            .st3{ fill:#23AA65; }
+        }
+
+        .owlGaugeTail {
+            animation: owlTailAmbientAnimation .5s infinite;
+        }
+    }
+
+    > svg {
+        position:absolute;
+        transition: all 0.25s;
+    }
+
+    .owlGaugeBody {
+        width: 30%;
+        left: 35%;
+        bottom: 0;
+        transform: translate(0, 30%);
+    }
+
+    .owlGaugeTail {
+        width: 70%;
+        left: 15%;
+        bottom: 0;
+        transform-origin: 50% 100%;
+    }
+
+    .owlGaugeBg {
+        width: 120%;
+        left: -10%;
+        bottom: 0;
+        transform-origin: 50% 100%;
+        transform: rotate(-180deg);
+
+        path {
+            transition: fill 0.5s;
+        }
+    }
+
+    @keyframes owlTailAmbientAnimation {
+        0% { transform: rotate(2deg); }
+        50% { transform: rotate(-2deg); }
+        100% { transform: rotate(2deg); }
+    }
 }

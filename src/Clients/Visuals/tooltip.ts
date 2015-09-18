@@ -24,6 +24,8 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="_references.ts"/>
+
 module powerbi.visuals {
 
     import TouchUtils = powerbi.visuals.controls.TouchUtils;
@@ -46,13 +48,13 @@ module powerbi.visuals {
 
     export interface TooltipCategoryDataItem {
         value?: any;
-        metadata: DataViewMetadataColumn
+        metadata: DataViewMetadataColumn;
     }
 
     export interface TooltipSeriesDataItem {
         value?: any;
         highlightedValue?: any;
-        metadata: DataViewValueColumn
+        metadata: DataViewValueColumn;
     }
 
     export interface TooltipLocalizationOptions {
@@ -68,7 +70,7 @@ module powerbi.visuals {
         isTouchEvent: boolean;
     }
 
-    enum ScreenArea {
+    const enum ScreenArea {
         TopLeft,
         TopRight,
         BottomRight,
@@ -82,7 +84,7 @@ module powerbi.visuals {
             animationDuration: 250,
             offsetX: 10,
             offsetY: 10
-        }
+        };
 
         private tooltipContainer: D3.Selection;
         private isTooltipVisible: boolean = false;
@@ -107,12 +109,12 @@ module powerbi.visuals {
             }
         }
 
-        // For tests only
+        /** Note: For tests only */
         public isTooltipComponentVisible(): boolean {
             return this.isTooltipVisible;
         }
 
-        // For tests only
+        /** Note: For tests only */
         public setTestScreenSize(width: number, height: number) {
             this.customScreenWidth = width;
             this.customScreenHeight = height;
@@ -126,7 +128,7 @@ module powerbi.visuals {
             }
 
             this.setTooltipContent(tooltipData);
-            
+
             this.tooltipContainer
                 .style("visibility", "visible")
                 .transition()
@@ -161,7 +163,7 @@ module powerbi.visuals {
             var container: D3.Selection = d3.select(ToolTipComponent.parentContainerSelector)
                 .append("div")
                 .attr("class", ToolTipComponent.containerClassName);
-            
+
             container.append("div").attr("class", ToolTipComponent.arrowClassName);
             container.append("div").attr("class", ToolTipComponent.contentContainerClassName);
 
@@ -280,6 +282,8 @@ module powerbi.visuals {
         var tooltipMouseOverDelay: number = 500;
         var tooltipTouchDelay: number = 500;
         var tooltipTimeoutId: number;
+        var handleTouchDelay: number = 1000;
+        var handleTouchTimeoutId: number = 0;
         var mouseCoordinates: number[];
 
         export function addTooltip(d3Selection: D3.Selection, getTooltipInfoDelegate: (tooltipEvent: TooltipEvent) => TooltipDataItem[], reloadTooltipDataOnMouseMove?: boolean): void {
@@ -297,7 +301,8 @@ module powerbi.visuals {
 
             // Mouse events
             d3Selection.on("mouseover", function (d, i) {
-                if (canDisplayTooltip(d3.event)) {
+                // Ignore mouseover (and other mouse events) while handling touch events
+                if (!handleTouchTimeoutId && canDisplayTooltip(d3.event)) {
                     mouseCoordinates = getCoordinates(rootNode, true);
                     var elementCoordinates: number[] = getCoordinates(this, true);
                     var tooltipEvent: TooltipEvent = {
@@ -314,12 +319,14 @@ module powerbi.visuals {
             });
 
             d3Selection.on("mouseout", function (d, i) {
-                clearTooltipTimeout();
-                hideTooltipEventHandler();
+                if (!handleTouchTimeoutId) {
+                    clearTooltipTimeout();
+                    hideTooltipEventHandler();
+                }
             });
 
             d3Selection.on("mousemove", function (d, i) {
-                if (canDisplayTooltip(d3.event)) {
+                if (!handleTouchTimeoutId && canDisplayTooltip(d3.event)) {
                     mouseCoordinates = getCoordinates(rootNode, true);
                     var elementCoordinates: number[] = getCoordinates(this, true);
                     var tooltipEvent: TooltipEvent = {
@@ -342,7 +349,7 @@ module powerbi.visuals {
             }
 
             d3Selection.on(touchStartEventName, function (d, i) {
-                stopEventPropogation(d3.event);
+                mouseCoordinates = null;
                 hideTooltipEventHandler();
                 var coordinates: number[] = getCoordinates(rootNode, isPointerEvent);
                 var elementCoordinates: number[] = getCoordinates(this, isPointerEvent);
@@ -360,6 +367,13 @@ module powerbi.visuals {
 
             d3Selection.on(touchEndEventName, function (d, i) {
                 clearTooltipTimeout();
+                if (handleTouchTimeoutId)
+                    clearTimeout(handleTouchTimeoutId);
+
+                // At the end of touch action, set a timeout that will let us ignore the incoming mouse events for a small amount of time
+                handleTouchTimeoutId = setTimeout(() => {
+                    handleTouchTimeoutId = 0;
+                }, handleTouchDelay);
             });
         }
 
@@ -397,11 +411,6 @@ module powerbi.visuals {
             if (tooltipTimeoutId) {
                 clearTimeout(tooltipTimeoutId);
             }
-        }
-
-        function stopEventPropogation(d3Event: D3.D3Event) {
-            d3Event.preventDefault();
-            d3Event.stopPropagation();
         }
 
         function canDisplayTooltip(d3Event: any): boolean {
@@ -486,26 +495,46 @@ module powerbi.visuals {
         // TODO: implement options bag as input parameter
         export function createTooltipInfo(
             formatStringProp: DataViewObjectPropertyIdentifier,
-            categories: DataViewCategoryColumn[],
+            dataViewCat: DataViewCategorical,
             categoryValue: any,
-            values?: DataViewValueColumns,
             value?: any,
+            categories?: DataViewCategoryColumn[],
             seriesData?: TooltipSeriesDataItem[],
             seriesIndex?: number,
+            categoryIndex?: number,
             highlightedValue?: any): TooltipDataItem[] {
             var categorySource: TooltipCategoryDataItem;
             var seriesSource: TooltipSeriesDataItem[] = [];
             var valuesSource: DataViewMetadataColumn = undefined;
             seriesIndex = seriesIndex | 0;
-            if (categories && categories.length > 0) {
-                categorySource = { value: categoryValue, metadata: categories[0].source };
+
+            var categoriesData = dataViewCat ? dataViewCat.categories : categories;
+            if (categoriesData && categoriesData.length > 0) {
+                categorySource = { value: categoryValue, metadata: categoriesData[0].source };
             }
-            if (values) {
-                if (categorySource && categorySource.metadata === values.source) {
+            if (dataViewCat && dataViewCat.values) {
+                if (categorySource && categorySource.metadata === dataViewCat.values.source) {
                     // Category/series on the same column -- don't repeat its value in the tooltip.
                 }
                 else {
-                    valuesSource = values.source;
+                    valuesSource = dataViewCat.values.source;
+                }
+                if (dataViewCat.values.length > 0) {
+                    var valueColumn: DataViewValueColumn = dataViewCat.values[seriesIndex];
+                    var isAutoGeneratedColumn: boolean = !!(valueColumn && valueColumn.source && (<DataViewMetadataAutoGeneratedColumn>valueColumn.source).isAutoGeneratedColumn);
+
+                    if (!isAutoGeneratedColumn) {
+                        seriesSource.push({ value: value, highlightedValue: highlightedValue, metadata: valueColumn });
+                    }
+                }
+
+                // check for gradient measure index 
+                var gradientMeasureIndex: number = GradientUtils.getGradientMeasureIndex(dataViewCat);
+                var gradientValueColumn: DataViewValueColumn = gradientMeasureIndex === - 1 ? null : dataViewCat.values[gradientMeasureIndex];
+                //If the same column has both Y and Gradient roles then make sure we don't add it more than once
+                if (gradientValueColumn && seriesIndex !== gradientMeasureIndex) {
+                    // Saturation color
+                    seriesSource.push({ value: gradientValueColumn.values[categoryIndex], metadata: { source: gradientValueColumn.source, values: [] } });
                 }
             }
             if (seriesData) {
@@ -515,15 +544,6 @@ module powerbi.visuals {
                         continue;
 
                     seriesSource.push({ value: singleSeriesData.value, metadata: singleSeriesData.metadata });
-                }
-            }
-            else if (values && values.length > 0) {
-                var valueColumn: DataViewValueColumn = values[seriesIndex];
-                var autoGeneratedColumnMetadata: DataViewMetadataAutoGeneratedColumn = valueColumn && valueColumn.source ? <DataViewMetadataAutoGeneratedColumn>valueColumn.source : null;
-                var isManuallyAddedField: boolean = autoGeneratedColumnMetadata && autoGeneratedColumnMetadata.isAutoGeneratedColumn;
-
-                if (!isManuallyAddedField) {
-                    seriesSource = [{ value: value, highlightedValue: highlightedValue, metadata: valueColumn }];
                 }
             }
 
@@ -536,7 +556,7 @@ module powerbi.visuals {
             formatStringProp: DataViewObjectPropertyIdentifier,
             categoryValue: TooltipCategoryDataItem,
             valuesSource: DataViewMetadataColumn,
-            seriesValues: TooltipSeriesDataItem[]): TooltipDataItem[]{
+            seriesValues: TooltipSeriesDataItem[]): TooltipDataItem[] {
 
             debug.assertValue(seriesValues, "seriesSource");
             debug.assertValue(ToolTipComponent.localizationOptions, "ToolTipComponent.localizationOptions");
@@ -554,7 +574,7 @@ module powerbi.visuals {
                 var dynamicValue: string;
                 if (seriesValues.length > 0) {
                     var dynamicValueMetadata: DataViewMetadataColumn = seriesValues[0].metadata.source;
-                    dynamicValue = getFormattedValue(dynamicValueMetadata, formatStringProp, dynamicValueMetadata.groupName);
+                    dynamicValue = getFormattedValue(valuesSource, formatStringProp, dynamicValueMetadata.groupName);
                 }
                 items.push({ displayName: valuesSource.displayName, value: dynamicValue });
             }

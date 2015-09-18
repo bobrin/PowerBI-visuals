@@ -24,30 +24,38 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="../_references.ts"/>
+
 module powerbitests {
     import ArrayExtensions = jsCommon.ArrayExtensions;
     import CssConstants = jsCommon.CssConstants;
     import data = powerbi.data;
-    import DataShapeUtility = powerbi.data.dsr.DataShapeUtility;
     import DataViewAnalysis = powerbi.DataViewAnalysis;
     import DataViewTransform = powerbi.data.DataViewTransform;
     import DataView = powerbi.DataView;
+    import QueryProjectionCollection = powerbi.data.QueryProjectionCollection;
     import QueryProjectionsByRole = powerbi.data.QueryProjectionsByRole;
-    import SemanticType = powerbi.data.SemanticType;
     import SQExprBuilder = powerbi.data.SQExprBuilder;
     import Treemap = powerbi.visuals.Treemap;
     import TreemapNode = powerbi.visuals.TreemapNode;
     import SelectionId = powerbi.visuals.SelectionId;
+    import ValueType = powerbi.ValueType;
+    import PrimitiveType = powerbi.PrimitiveType;
+
+    var dataTypeNumber = ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double);
+    var dataTypeString = ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text);
 
     var DefaultWaitForRender = 500;
 
+    powerbitests.mocks.setLocale();
+
     var dataViewMetadataCategorySeriesColumns: powerbi.DataViewMetadata = {
         columns: [
-            { displayName: 'Squad', queryName: 'select0', properties: { "Category": true }, type: DataShapeUtility.describeDataType(SemanticType.String) },
-            { displayName: 'Period', queryName: 'select1', properties: { "Series": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-            { displayName: null, queryName: 'select2', groupName: '201501', isMeasure: true, properties: { "Values": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-            { displayName: null, queryName: 'select2', groupName: '201502', isMeasure: true, properties: { "Values": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-            { displayName: null, queryName: 'select2', groupName: '201503', isMeasure: true, properties: { "Values": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) }
+            { displayName: 'Squad', queryName: 'select0', properties: { "Category": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+            { displayName: 'Period', queryName: 'select1', properties: { "Series": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+            { displayName: null, queryName: 'select2', groupName: '201501', isMeasure: true, properties: { "Values": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+            { displayName: null, queryName: 'select2', groupName: '201502', isMeasure: true, properties: { "Values": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+            { displayName: null, queryName: 'select2', groupName: '201503', isMeasure: true, properties: { "Values": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
         ]
     };
     var categoryColumnRef = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'Squad' });
@@ -55,30 +63,30 @@ module powerbitests {
 
     var dataViewMetadataCategoryColumn: powerbi.DataViewMetadata = {
         columns: [
-            { displayName: 'Genre', queryName: 'select0', properties: { "Category": true }, type: DataShapeUtility.describeDataType(SemanticType.String) },
-            { displayName: 'TotalSales', queryName: 'select1', isMeasure: true, properties: { "Values": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) }
+            { displayName: 'Genre', queryName: 'select0', properties: { "Category": true }, type: dataTypeString },
+            { displayName: 'TotalSales', queryName: 'select1', isMeasure: true, properties: { "Values": true }, type: dataTypeNumber }
         ]
     };
 
     var dataViewMetadataCategoryColumnAndLongText: powerbi.DataViewMetadata = {
         columns: [
-            { displayName: 'Category group', queryName: 'select0', properties: { "Category": true }, type: DataShapeUtility.describeDataType(SemanticType.String) },
-            { displayName: 'Measure with long name', queryName: 'select1', isMeasure: true, properties: { "Values": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-            { displayName: 'Measure', queryName: 'select2', isMeasure: true, properties: { "Values": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) }
+            { displayName: 'Category group', queryName: 'select0', properties: { "Category": true }, type: dataTypeString },
+            { displayName: 'Measure with long name', queryName: 'select1', isMeasure: true, properties: { "Values": true }, type: dataTypeNumber },
+            { displayName: 'Measure', queryName: 'select2', isMeasure: true, properties: { "Values": true }, type: dataTypeNumber }
         ]
     };
 
     var dataViewMetadataCategoryAndMeasures: powerbi.DataViewMetadata = {
         columns: [
-            { displayName: 'Area', queryName: 'select0', properties: { "Category": true }, type: DataShapeUtility.describeDataType(SemanticType.String) },
-            { displayName: 'BugsFiled', queryName: 'select1', isMeasure: true, properties: { "Values": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-            { displayName: 'BugsFixed', queryName: 'select2', isMeasure: true, properties: { "Values": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) }
+            { displayName: 'Area', queryName: 'select0', properties: { "Category": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+            { displayName: 'BugsFiled', queryName: 'select1', isMeasure: true, properties: { "Values": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+            { displayName: 'BugsFixed', queryName: 'select2', isMeasure: true, properties: { "Values": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
         ]
     };
 
     describe("Treemap",() => {
-        var categoryColumn: powerbi.DataViewMetadataColumn = { displayName: 'year', queryName: 'select0', type: DataShapeUtility.describeDataType(SemanticType.String) };
-        var measureColumn: powerbi.DataViewMetadataColumn = { displayName: 'sales', queryName: 'select1', isMeasure: true, type: DataShapeUtility.describeDataType(SemanticType.Integer) };
+        var categoryColumn: powerbi.DataViewMetadataColumn = { displayName: 'year', queryName: 'select0', type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) };
+        var measureColumn: powerbi.DataViewMetadataColumn = { displayName: 'sales', queryName: 'select1', isMeasure: true, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) };
 
         it('Treemap registered capabilities',() => {
             expect(powerbi.visuals.visualPluginFactory.create().getPlugin('treemap').capabilities).toBe(powerbi.visuals.treemapCapabilities);
@@ -157,28 +165,28 @@ module powerbitests {
         it ('Capabilities should only allow one measure if there are group and detail',() => {
             var allowedProjections: QueryProjectionsByRole =
                 {
-                    'Group': [{ queryRef: '0' }],
-                    'Details': [{ queryRef: '1' }],
-                    'Values': [{ queryRef: '2' }]
+                    'Group': new QueryProjectionCollection([{ queryRef: '0' }]),
+                    'Details': new QueryProjectionCollection([{ queryRef: '1' }]),
+                    'Values': new QueryProjectionCollection([{ queryRef: '2' }]),
                 };
             var disallowedProjections1: QueryProjectionsByRole =
                 {
-                    'Group': [{ queryRef: '0' }],
-                    'Details': [{ queryRef: '1' }],
-                    'Values': [
+                    'Group': new QueryProjectionCollection([{ queryRef: '0' }]),
+                    'Details': new QueryProjectionCollection([{ queryRef: '1' }]),
+                    'Values': new QueryProjectionCollection([
                         { queryRef: '2' },
                         { queryRef: '3' }
-                    ]
+                    ])
                 };
             var disallowedProjections2: QueryProjectionsByRole =
                 {
-                    'Group': [{ queryRef: '0' }],
-                    'Details': [{ queryRef: '1' }],
-                    'Values': [
+                    'Group': new QueryProjectionCollection([{ queryRef: '0' }]),
+                    'Details': new QueryProjectionCollection([{ queryRef: '1' }]),
+                    'Values': new QueryProjectionCollection([
                         { queryRef: '2' },
                         { queryRef: '3' },
                         { queryRef: '4' }
-                    ]
+                    ])
                 };
 
             var dataViewMappings = powerbi.visuals.treemapCapabilities.dataViewMappings;
@@ -190,16 +198,16 @@ module powerbitests {
         it('Capabilities should only allow one measure if is a detail group',() => {
             var allowedProjections: QueryProjectionsByRole =
                 {
-                    'Details': [{ queryRef: '1' }],
-                    'Values': [{ queryRef: '0' }]
+                    'Details': new QueryProjectionCollection([{ queryRef: '1' }]),
+                    'Values': new QueryProjectionCollection([{ queryRef: '0' }]),
                 };
             var disallowedProjections: QueryProjectionsByRole =
                 {
-                    'Details': [{ queryRef: '1' }],
-                    'Values': [
+                    'Details': new QueryProjectionCollection([{ queryRef: '1' }]),
+                    'Values': new QueryProjectionCollection([
                         { queryRef: '2' },
                         { queryRef: '0' }
-                    ]
+                    ]),
                 };
 
             var dataViewMappings = powerbi.visuals.treemapCapabilities.dataViewMappings;
@@ -210,35 +218,35 @@ module powerbitests {
         it('Capabilities should allow multiple measures if there is no detail group',() => {
             var allowedProjections1: QueryProjectionsByRole =
                 {
-                    'Group': [{ queryRef: '2' }],
-                    'Values': [
+                    'Group': new QueryProjectionCollection([{ queryRef: '2' }]),
+                    'Values': new QueryProjectionCollection([
                         { queryRef: '1' },
                         { queryRef: '0' }
-                    ]
+                    ])
                 };
 
             var allowedProjections2: QueryProjectionsByRole =
                 {
-                    'Group': [{ queryRef: '1' }],
-                    'Values': [
+                    'Group': new QueryProjectionCollection([{ queryRef: '1' }]),
+                    'Values': new QueryProjectionCollection([
                         { queryRef: '2' },
                         { queryRef: '0' },
                         { queryRef: '3' }
-                    ]
+                    ]),
                 };
 
             var allowedProjections3: QueryProjectionsByRole =
                 {
-                    'Group': [{ queryRef: '1' }],
-                    'Values': [{ queryRef: '0' }]
+                    'Group': new QueryProjectionCollection([{ queryRef: '1' }]),
+                    'Values': new QueryProjectionCollection([{ queryRef: '0' }]),
                 };
 
             var allowedProjections4: QueryProjectionsByRole =
                 {
-                    'Values': [
+                    'Values': new QueryProjectionCollection([
                         { queryRef: '0' },
                         { queryRef: '1' }
-                    ]
+                    ]),
                 };
 
             var dataViewMappings = powerbi.visuals.treemapCapabilities.dataViewMappings;
@@ -251,29 +259,29 @@ module powerbitests {
         it('Capabilities should not allow multiple category groups',() => {
             var disallowedProjections1: QueryProjectionsByRole =
                 {
-                    'Group': [
+                    'Group': new QueryProjectionCollection([
                         { queryRef: '0' },
                         { queryRef: '1' }
-                    ]
+                    ]),
                 };
 
             var disallowedProjections2: QueryProjectionsByRole =
                 {
-                    'Group': [
+                    'Group': new QueryProjectionCollection([
                         { queryRef: '0' },
                         { queryRef: '1' }
-                    ],
-                    'Values': [{ queryRef: '2' }]
+                    ]),
+                    'Values': new QueryProjectionCollection([{ queryRef: '2' }]),
                 };
 
             var disallowedProjections3: QueryProjectionsByRole =
                 {
-                    'Group': [
+                    'Group': new QueryProjectionCollection([
                         { queryRef: '0' },
                         { queryRef: '1' }
-                    ],
-                    'Details': [{ queryRef: '2' }],
-                    'Values': [{ queryRef: '3' }]
+                    ]),
+                    'Details': new QueryProjectionCollection([{ queryRef: '2' }]),
+                    'Values': new QueryProjectionCollection([{ queryRef: '3' }]),
                 };
 
             var dataViewMappings = powerbi.visuals.treemapCapabilities.dataViewMappings;
@@ -285,29 +293,29 @@ module powerbitests {
         it('Capabilities should not allow multiple detail groups',() => {
             var disallowedProjections1: QueryProjectionsByRole =
                 {
-                    'Details': [
+                    'Details': new QueryProjectionCollection([
                         { queryRef: '0' },
                         { queryRef: '1' }
-                    ]
+                    ])
                 };
 
             var disallowedProjections2: QueryProjectionsByRole =
                 {
-                    'Details': [
+                    'Details': new QueryProjectionCollection([
                         { queryRef: '0' },
                         { queryRef: '1' }
-                    ],
-                    'Values': [{ queryRef: '2' }]
+                    ]),
+                    'Values': new QueryProjectionCollection([{ queryRef: '2' }])
                 };
 
             var disallowedProjections3: QueryProjectionsByRole =
                 {
-                    'Group': [{ queryRef: '0' }],
-                    'Details': [
+                    'Group': new QueryProjectionCollection([{ queryRef: '0' }]),
+                    'Details': new QueryProjectionCollection([
                         { queryRef: '1' },
                         { queryRef: '2' }
-                    ],
-                    'Values': [{ queryRef: '3' }]
+                    ]),
+                    'Values': new QueryProjectionCollection([{ queryRef: '3' }]),
                 };
 
             var dataViewMappings = powerbi.visuals.treemapCapabilities.dataViewMappings;
@@ -319,23 +327,23 @@ module powerbitests {
         it('Capabilities should allow one category and/or one detail groups',() => {
             var allowedProjections1: QueryProjectionsByRole =
                 {
-                    'Group': [{ queryRef: '0' }]
+                    'Group': new QueryProjectionCollection([{ queryRef: '0' }])
                 };
 
             var allowedProjections2: QueryProjectionsByRole =
                 {
-                    'Detail': [{ queryRef: '0' }]
+                    'Detail': new QueryProjectionCollection([{ queryRef: '0' }])
                 };
 
             var allowedProjections3: QueryProjectionsByRole =
                 {
-                    'Group': [{ queryRef: '0' }],
-                    'Detail': [{ queryRef: '1' }]
+                    'Group': new QueryProjectionCollection([{ queryRef: '0' }]),
+                    'Detail': new QueryProjectionCollection([{ queryRef: '1' }]),
                 };
 
             var allowedProjections4: QueryProjectionsByRole =
                 {
-                    'Values': [{ queryRef: '0' }]
+                    'Values': new QueryProjectionCollection([{ queryRef: '0' }]),
                 };
 
             var dataViewMappings = powerbi.visuals.treemapCapabilities.dataViewMappings;
@@ -348,11 +356,10 @@ module powerbitests {
 
     describe("treemap data labels validation",() => {
         var v: powerbi.IVisual, element: JQuery;
-        var hostServices: IVisualHostServices;
+        var hostServices: powerbi.IVisualHostServices;
 
         beforeEach(() => {
             hostServices = powerbitests.mocks.createVisualHostServices();
-            powerbitests.mocks.setLocale(powerbi.common.createLocalizationService());
             element = powerbitests.helpers.testDom('500', '500');
             v = powerbi.visuals.visualPluginFactory.create().getPlugin('treemap').create();
             v.init({
@@ -407,7 +414,7 @@ module powerbitests {
             setTimeout(() => {
                 expect(warningSpy).toHaveBeenCalled();
                 expect(warningSpy.calls.count()).toBe(1);
-                expect(warningSpy.calls.argsFor(0)[0][0].code).toBe('InfinityValuesNotSupported');
+                expect(warningSpy.calls.argsFor(0)[0][0].code).toBe('GeometryCulledWarning');
                 done();
             }, DefaultWaitForRender);
         });
@@ -422,7 +429,7 @@ module powerbitests {
             setTimeout(() => {
                 expect(warningSpy).toHaveBeenCalled();
                 expect(warningSpy.calls.count()).toBe(1);
-                expect(warningSpy.calls.argsFor(0)[0][0].code).toBe('ValuesOutOfRange');
+                expect(warningSpy.calls.argsFor(0)[0][0].code).toBe('GeometryCulledWarning');
                 done();
             }, DefaultWaitForRender);
         });
@@ -460,11 +467,11 @@ module powerbitests {
                                 values: values,
                                 identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201501')),
                             }],
-                            [seriesColumnRef])
+                            [seriesColumnRef],
+                            dataViewMetadataCategorySeriesColumns.columns[1])
                     }
                 }]
             };
-            dataChangedOptions.dataViews[0].categorical.values.source = dataViewMetadataCategorySeriesColumns.columns[1];
 
             return dataChangedOptions;
         }
@@ -498,11 +505,11 @@ module powerbitests {
                                 values: [310, 320],
                                 identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201503')),
                             }],
-                            [seriesColumnRef])
+                            [seriesColumnRef],
+                            dataViewMetadataCategorySeriesColumns.columns[1])
                     }
                 }]
             };
-            dataChangedOptions.dataViews[0].categorical.values.source = dataViewMetadataCategorySeriesColumns.columns[1];
             v.onDataChanged(dataChangedOptions);
 
             setTimeout(() => {
@@ -514,7 +521,10 @@ module powerbitests {
 
         it('labels should be visible',(done) => {
 
-            dataViewMetadataCategorySeriesColumns.objects = { labels: { show: true } };
+            dataViewMetadataCategorySeriesColumns.objects = {
+                labels: { show: true },
+                categoryLabels: { show: true }
+            };
 
             var dataChangedOptions = {
                 dataViews: [{
@@ -542,11 +552,12 @@ module powerbitests {
                                 source: dataViewMetadataCategorySeriesColumns.columns[4],
                                 values: [310, 320],
                                 identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201503')),
-                            }])
+                            }],
+                            undefined,
+                            dataViewMetadataCategorySeriesColumns.columns[1])
                     }
                 }]
             };
-            dataChangedOptions.dataViews[0].categorical.values.source = dataViewMetadataCategorySeriesColumns.columns[1];
             v.onDataChanged(dataChangedOptions);
 
             setTimeout(() => {
@@ -558,7 +569,10 @@ module powerbitests {
 
         it('labels should be hidden',(done) => {
 
-            dataViewMetadataCategorySeriesColumns.objects = { labels: { show: false } };
+            dataViewMetadataCategorySeriesColumns.objects = {
+                labels: { show: false },
+                categoryLabels: { show: false }
+            };
 
             var dataChangedOptions = {
                 dataViews: [{
@@ -586,11 +600,12 @@ module powerbitests {
                                 source: dataViewMetadataCategorySeriesColumns.columns[4],
                                 values: [310, 320],
                                 identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201503')),
-                            }])
+                            }],
+                            undefined,
+                            dataViewMetadataCategorySeriesColumns.columns[1])
                     }
                 }]
             };
-            dataChangedOptions.dataViews[0].categorical.values.source = dataViewMetadataCategorySeriesColumns.columns[1];
             v.onDataChanged(dataChangedOptions);
 
             setTimeout(() => {
@@ -600,9 +615,355 @@ module powerbitests {
             }, DefaultWaitForRender);
         });
 
+        it('Verify values when labels are on and categoryLabels are on', (done) => {
+
+            dataViewMetadataCategorySeriesColumns.objects = {
+                labels: { show: true, labelPrecision: 0 },
+                categoryLabels: { show: true }
+            };
+
+            var dataChangedOptions = {
+                dataViews: [{
+                    metadata: dataViewMetadataCategorySeriesColumns,
+                    categorical: {
+                        categories: [{
+                            source: dataViewMetadataCategorySeriesColumns.columns[0],
+                            values: ['The Nuthatches', 'Skylarks'],
+                            identity: [
+                                mocks.dataViewScopeIdentity('The Nuthatches'),
+                                mocks.dataViewScopeIdentity('Skylarks'),
+                            ],
+                            identityFields: [categoryColumnRef],
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: dataViewMetadataCategorySeriesColumns.columns[2],
+                                values: [110, 120],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201501')),
+                            }, {
+                                source: dataViewMetadataCategorySeriesColumns.columns[3],
+                                values: [210, 220],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201502')),
+                            }, {
+                                source: dataViewMetadataCategorySeriesColumns.columns[4],
+                                values: [310, 320],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201503')),
+                            }],
+                            undefined,
+                            dataViewMetadataCategorySeriesColumns.columns[1])
+                    }
+                }]
+            };
+            v.onDataChanged(dataChangedOptions);
+
+            setTimeout(() => {
+                expect($('.treemap .labels .majorLabel').length).toEqual(2);
+                expect($('.treemap .labels .minorLabel').first().text()).toBe('201501 110');
+                expect($('.treemap .labels .minorLabel').last().text()).toBe('201503 320');
+                done();
+            }, DefaultWaitForRender);
+        });
+
+        it('Verify values when labels are on and categoryLabels are off', (done) => {
+
+            dataViewMetadataCategorySeriesColumns.objects = {
+                labels: { show: true, labelPrecision: 0 },
+                categoryLabels: { show: false }
+            };
+
+            var dataChangedOptions = {
+                dataViews: [{
+                    metadata: dataViewMetadataCategorySeriesColumns,
+                    categorical: {
+                        categories: [{
+                            source: dataViewMetadataCategorySeriesColumns.columns[0],
+                            values: ['The Nuthatches', 'Skylarks'],
+                            identity: [
+                                mocks.dataViewScopeIdentity('The Nuthatches'),
+                                mocks.dataViewScopeIdentity('Skylarks'),
+                            ],
+                            identityFields: [categoryColumnRef],
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: dataViewMetadataCategorySeriesColumns.columns[2],
+                                values: [110, 120],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201501')),
+                            }, {
+                                source: dataViewMetadataCategorySeriesColumns.columns[3],
+                                values: [210, 220],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201502')),
+                            }, {
+                                source: dataViewMetadataCategorySeriesColumns.columns[4],
+                                values: [310, 320],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201503')),
+                            }],
+                            undefined,
+                            dataViewMetadataCategorySeriesColumns.columns[1])
+                    }
+                }]
+            };
+            v.onDataChanged(dataChangedOptions);
+
+            setTimeout(() => {
+                expect($('.treemap .labels .majorLabel').length).toEqual(2);
+                expect($('.treemap .labels .minorLabel').first().text()).toBe('110');
+                expect($('.treemap .labels .minorLabel').last().text()).toBe('320');
+                done();
+            }, DefaultWaitForRender);
+        });
+
+        it('Verify values when labels are off and categoryLabels are on', (done) => {
+
+            dataViewMetadataCategorySeriesColumns.objects = {
+                labels: { show: false },
+                categoryLabels: { show: true }
+            };
+
+            var dataChangedOptions = {
+                dataViews: [{
+                    metadata: dataViewMetadataCategorySeriesColumns,
+                    categorical: {
+                        categories: [{
+                            source: dataViewMetadataCategorySeriesColumns.columns[0],
+                            values: ['The Nuthatches', 'Skylarks'],
+                            identity: [
+                                mocks.dataViewScopeIdentity('The Nuthatches'),
+                                mocks.dataViewScopeIdentity('Skylarks'),
+                            ],
+                            identityFields: [categoryColumnRef],
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: dataViewMetadataCategorySeriesColumns.columns[2],
+                                values: [110, 120],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201501')),
+                            }, {
+                                source: dataViewMetadataCategorySeriesColumns.columns[3],
+                                values: [210, 220],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201502')),
+                            }, {
+                                source: dataViewMetadataCategorySeriesColumns.columns[4],
+                                values: [310, 320],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201503')),
+                            }],
+                            undefined,
+                            dataViewMetadataCategorySeriesColumns.columns[1])
+                    }
+                }]
+            };
+            v.onDataChanged(dataChangedOptions);
+
+            setTimeout(() => {
+                expect($('.treemap .labels .majorLabel').length).toEqual(2);
+                expect($('.treemap .labels .minorLabel').first().text()).toBe('201501');
+                expect($('.treemap .labels .minorLabel').last().text()).toBe('201503');
+                done();
+            }, DefaultWaitForRender);
+        });
+
+        it('Verify values for labels with display units and precision', (done) => {
+
+            dataViewMetadataCategorySeriesColumns.objects = {
+                labels: { show: true, labelDisplayUnits: 1000000, labelPrecision: 3 },
+                categoryLabels: { show: false }
+            };
+
+            var dataChangedOptions = {
+                dataViews: [{
+                    metadata: dataViewMetadataCategorySeriesColumns,
+                    categorical: {
+                        categories: [{
+                            source: dataViewMetadataCategorySeriesColumns.columns[0],
+                            values: ['The Nuthatches', 'Skylarks'],
+                            identity: [
+                                mocks.dataViewScopeIdentity('The Nuthatches'),
+                                mocks.dataViewScopeIdentity('Skylarks'),
+                            ],
+                            identityFields: [categoryColumnRef],
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: dataViewMetadataCategorySeriesColumns.columns[2],
+                                values: [110000, 120000],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201501')),
+                            }, {
+                                source: dataViewMetadataCategorySeriesColumns.columns[3],
+                                values: [210000, 220000],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201502')),
+                            }, {
+                                source: dataViewMetadataCategorySeriesColumns.columns[4],
+                                values: [310000, 320000],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201503')),
+                            }],
+                            undefined,
+                            dataViewMetadataCategorySeriesColumns.columns[1])
+                    }
+                }]
+            };
+            v.onDataChanged(dataChangedOptions);
+
+            setTimeout(() => {
+                expect($('.treemap .labels .minorLabel').length).toEqual(6);
+                expect($('.treemap .labels .minorLabel').first().text()).toBe('0.110M');
+                expect($('.treemap .labels .minorLabel').last().text()).toBe('0.320M');
+                done();
+            }, DefaultWaitForRender);
+        });
+
+        it('Verify values for labels with display units and no precision', (done) => {
+
+            dataViewMetadataCategorySeriesColumns.objects = {
+                labels: { show: true, labelDisplayUnits: 1000000, labelPrecision: 0 },
+                categoryLabels: { show: false }
+            };
+
+            var dataChangedOptions = {
+                dataViews: [{
+                    metadata: dataViewMetadataCategorySeriesColumns,
+                    categorical: {
+                        categories: [{
+                            source: dataViewMetadataCategorySeriesColumns.columns[0],
+                            values: ['The Nuthatches', 'Skylarks'],
+                            identity: [
+                                mocks.dataViewScopeIdentity('The Nuthatches'),
+                                mocks.dataViewScopeIdentity('Skylarks'),
+                            ],
+                            identityFields: [categoryColumnRef],
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: dataViewMetadataCategorySeriesColumns.columns[2],
+                                values: [110000, 120000],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201501')),
+                            }, {
+                                source: dataViewMetadataCategorySeriesColumns.columns[3],
+                                values: [210000, 220000],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201502')),
+                            }, {
+                                source: dataViewMetadataCategorySeriesColumns.columns[4],
+                                values: [310000, 320000],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201503')),
+                            }],
+                            undefined,
+                            dataViewMetadataCategorySeriesColumns.columns[1])
+                    }
+                }]
+            };
+            v.onDataChanged(dataChangedOptions);
+
+            setTimeout(() => {
+                expect($('.treemap .labels .minorLabel').length).toEqual(6);
+                expect($('.treemap .labels .minorLabel').first().text()).toBe('0M');
+                expect($('.treemap .labels .minorLabel').last().text()).toBe('0M');
+                done();
+            }, DefaultWaitForRender);
+        });
+
+        it('Verify values for labels without display units and precision', (done) => {
+
+            dataViewMetadataCategorySeriesColumns.objects = {
+                labels: { show: true, labelDisplayUnits: 0, labelPrecision: 2 },
+                categoryLabels: { show: false }
+            };
+
+            var dataChangedOptions = {
+                dataViews: [{
+                    metadata: dataViewMetadataCategorySeriesColumns,
+                    categorical: {
+                        categories: [{
+                            source: dataViewMetadataCategorySeriesColumns.columns[0],
+                            values: ['The Nuthatches', 'Skylarks'],
+                            identity: [
+                                mocks.dataViewScopeIdentity('The Nuthatches'),
+                                mocks.dataViewScopeIdentity('Skylarks'),
+                            ],
+                            identityFields: [categoryColumnRef],
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: dataViewMetadataCategorySeriesColumns.columns[2],
+                                values: [110.123, 120.123],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201501')),
+                            }, {
+                                source: dataViewMetadataCategorySeriesColumns.columns[3],
+                                values: [210.234, 220.234],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201502')),
+                            }, {
+                                source: dataViewMetadataCategorySeriesColumns.columns[4],
+                                values: [310.345, 320.345],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201503')),
+                            }],
+                            undefined,
+                            dataViewMetadataCategorySeriesColumns.columns[1])
+                    }
+                }]
+            };
+            v.onDataChanged(dataChangedOptions);
+
+            setTimeout(() => {
+                expect($('.treemap .labels .minorLabel').length).toEqual(6);
+                expect($('.treemap .labels .minorLabel').first().text()).toBe('110.12');
+                expect($('.treemap .labels .minorLabel').last().text()).toBe('320.35');
+                done();
+            }, DefaultWaitForRender);
+        });
+
+        it('Verify values for labels without display units and no precision', (done) => {
+
+            dataViewMetadataCategorySeriesColumns.objects = {
+                labels: { show: true, labelDisplayUnits: 0, labelPrecision: 0 },
+                categoryLabels: { show: false }
+            };
+
+            var dataChangedOptions = {
+                dataViews: [{
+                    metadata: dataViewMetadataCategorySeriesColumns,
+                    categorical: {
+                        categories: [{
+                            source: dataViewMetadataCategorySeriesColumns.columns[0],
+                            values: ['The Nuthatches', 'Skylarks'],
+                            identity: [
+                                mocks.dataViewScopeIdentity('The Nuthatches'),
+                                mocks.dataViewScopeIdentity('Skylarks'),
+                            ],
+                            identityFields: [categoryColumnRef],
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: dataViewMetadataCategorySeriesColumns.columns[2],
+                                values: [110, 120],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201501')),
+                            }, {
+                                source: dataViewMetadataCategorySeriesColumns.columns[3],
+                                values: [210, 220],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201502')),
+                            }, {
+                                source: dataViewMetadataCategorySeriesColumns.columns[4],
+                                values: [310, 320],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201503')),
+                            }],
+                            undefined,
+                            dataViewMetadataCategorySeriesColumns.columns[1])
+                    }
+                }]
+            };
+            v.onDataChanged(dataChangedOptions);
+
+            setTimeout(() => {
+                expect($('.treemap .labels .minorLabel').length).toEqual(6);
+                expect($('.treemap .labels .minorLabel').first().text()).toBe('110');
+                expect($('.treemap .labels .minorLabel').last().text()).toBe('320');
+                done();
+            }, DefaultWaitForRender);
+        });
+
         it('hidden labels with highlights dom validation',(done) => {
 
-            dataViewMetadataCategorySeriesColumns.objects = { labels: { show: false } };
+            dataViewMetadataCategorySeriesColumns.objects = {
+                labels: { show: false },
+                categoryLabels: { show: false }
+            };
             var categoryIdentities = [
                 mocks.dataViewScopeIdentity("Drama"),
                 mocks.dataViewScopeIdentity("Comedy"),
@@ -642,7 +1003,8 @@ module powerbitests {
                 labels: {
                     color: { solid: { color: colorRgb } },
                     show: true,
-                }
+                },
+                categoryLabels: { show: true }
             };
             var dataChangedOptions = {
                 dataViews: [{
@@ -670,11 +1032,12 @@ module powerbitests {
                                 source: dataViewMetadataCategorySeriesColumns.columns[4],
                                 values: [310, 320],
                                 identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201503')),
-                            }])
+                            }],
+                            undefined,
+                            dataViewMetadataCategorySeriesColumns.columns[1])
                     }
                 }]
             };
-            dataChangedOptions.dataViews[0].categorical.values.source = dataViewMetadataCategorySeriesColumns.columns[1];
             v.onDataChanged(dataChangedOptions);
 
             setTimeout(() => {
@@ -695,11 +1058,7 @@ module powerbitests {
 
     describe("Enumerate Objects",() => {
         var v: powerbi.IVisual, element: JQuery;
-
-        beforeEach(() => {
-            powerbitests.mocks.setLocale(powerbi.common.createLocalizationService());
-        });
-
+        
         beforeEach(() => {
             element = powerbitests.helpers.testDom('500', '500');
             v = powerbi.visuals.visualPluginFactory.create().getPlugin('treemap').create();
@@ -742,11 +1101,12 @@ module powerbitests {
                                 source: dataViewMetadataCategorySeriesColumns.columns[4],
                                 values: [310, 320],
                                 identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201503')),
-                            }])
+                            }],
+                            undefined,
+                            dataViewMetadataCategorySeriesColumns.columns[1])
                     }
                 }]
             };
-            dataChangedOptions.dataViews[0].categorical.values.source = dataViewMetadataCategorySeriesColumns.columns[1];
             v.onDataChanged(dataChangedOptions);
 
             setTimeout(() => {
@@ -764,6 +1124,8 @@ module powerbitests {
     function treemapDomValidation(hasLegendObject: boolean) {
         var v: powerbi.IVisual, element: JQuery;
 
+        var hostServices = powerbitests.mocks.createVisualHostServices();
+
         if (hasLegendObject) {
             dataViewMetadataCategorySeriesColumns.objects = { legend: { show: true } };
         }
@@ -772,15 +1134,11 @@ module powerbitests {
         }
 
         beforeEach(() => {
-            powerbitests.mocks.setLocale(powerbi.common.createLocalizationService());
-        });
-
-        beforeEach(() => {
             element = powerbitests.helpers.testDom('500', '500');
             v = powerbi.visuals.visualPluginFactory.create().getPlugin('treemap').create();
             v.init({
                 element: element,
-                host: powerbitests.mocks.createVisualHostServices(),
+                host: hostServices,
                 style: powerbi.visuals.visualStyles.create(),
                 viewport: {
                     height: element.height(),
@@ -790,7 +1148,12 @@ module powerbitests {
             });
         });
 
-        it('treemap categories and series dom validation',(done) => {
+        it('treemap categories and series dom validation', (done) => {
+            dataViewMetadataCategorySeriesColumns.objects = {
+                labels: { show: false },
+                categoryLabels: { show: true }
+            };
+
             var dataChangedOptions = {
                 dataViews: [{
                     metadata: dataViewMetadataCategorySeriesColumns,
@@ -817,11 +1180,12 @@ module powerbitests {
                                 source: dataViewMetadataCategorySeriesColumns.columns[4],
                                 values: [310, 320],
                                 identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201503')),
-                            }])
+                            }],
+                            undefined,
+                            dataViewMetadataCategorySeriesColumns.columns[1])
                     }
                 }]
             };
-            dataChangedOptions.dataViews[0].categorical.values.source = dataViewMetadataCategorySeriesColumns.columns[1];
             v.onDataChanged(dataChangedOptions);
 
             var renderLegend = dataViewMetadataCategorySeriesColumns.objects && dataViewMetadataCategorySeriesColumns.objects['legend'];
@@ -843,7 +1207,12 @@ module powerbitests {
             }, DefaultWaitForRender);
         });
 
-        it('treemap categories and series onDataChanged dom validation',(done) => {
+        it('treemap categories and series onDataChanged dom validation', (done) => {
+            dataViewMetadataCategorySeriesColumns.objects = {
+                labels: { show: false },
+                categoryLabels: { show: true }
+            };
+
             var initialDataViews: DataView[] = [{
                 metadata: dataViewMetadataCategorySeriesColumns,
                 categorical: {
@@ -869,18 +1238,25 @@ module powerbitests {
                             source: dataViewMetadataCategorySeriesColumns.columns[4],
                             values: [310, 320],
                             identity: mocks.dataViewScopeIdentity('201503'),
-                        }])
+                        }],
+                        undefined,
+                        dataViewMetadataCategorySeriesColumns.columns[1])
                 }
             }];
-            initialDataViews[0].categorical.values.source = dataViewMetadataCategorySeriesColumns.columns[1];
             var updatedMetadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'Squad', properties: { "Category": true }, type: DataShapeUtility.describeDataType(SemanticType.String) },
-                    { displayName: 'Period', properties: { "Series": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: null, groupName: '201503', isMeasure: true, properties: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: null, groupName: '201504', isMeasure: true, properties: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) }
+                    { displayName: 'Squad', queryName: 'select0', properties: { "Category": true }, type: dataTypeString },
+                    { displayName: 'Period', queryName: 'select0', properties: { "Series": true }, type: dataTypeNumber },
+                    { displayName: null, groupName: '201503', isMeasure: true, properties: { "Y": true }, type: dataTypeNumber },
+                    { displayName: null, groupName: '201504', isMeasure: true, properties: { "Y": true }, type: dataTypeNumber }
                 ]
             };
+
+            updatedMetadata.objects = {
+                labels: { show: false },
+                categoryLabels: { show: true }
+            };
+
             var updatedDataViews: DataView[] = [{
                 metadata: updatedMetadata,
                 categorical: {
@@ -902,11 +1278,11 @@ module powerbitests {
                             source: updatedMetadata.columns[3],
                             values: [310, 320],
                             identity: mocks.dataViewScopeIdentity('201504'),
-                        }])
+                        }],
+                        undefined,
+                        dataViewMetadataCategorySeriesColumns.columns[1])
                 }
             }];
-            updatedDataViews[0].categorical.values.source = dataViewMetadataCategorySeriesColumns.columns[1];
-
             v.onDataChanged({ dataViews: initialDataViews });
 
             var renderLegend = dataViewMetadataCategorySeriesColumns.objects && dataViewMetadataCategorySeriesColumns.objects['legend'];
@@ -944,7 +1320,7 @@ module powerbitests {
             }, DefaultWaitForRender);
         });
 
-        it('treemap categories and series onResize from small to medium tile dom validation',(done) => {
+        it('treemap categories and series onResize from small to medium tile dom validation', (done) => {
             var onDataChangedOptions = {
                 dataViews: [{
                     metadata: dataViewMetadataCategorySeriesColumns,
@@ -971,17 +1347,18 @@ module powerbitests {
                                 source: dataViewMetadataCategorySeriesColumns.columns[4],
                                 values: [310, 320],
                                 identity: mocks.dataViewScopeIdentity('201503'),
-                            }])
+                            }],
+                            undefined,
+                            dataViewMetadataCategorySeriesColumns.columns[1])
                     }
                 }]
             };
-            onDataChangedOptions.dataViews[0].categorical.values.source = dataViewMetadataCategorySeriesColumns.columns[1];
             v.onDataChanged(onDataChangedOptions);
 
             v.onResizing({
                 height: 100,
                 width: 200
-            }, 0);
+            });
 
             setTimeout(() => {
                 expect($('.treemap .shapes .rootNode').length).toBe(1);
@@ -989,7 +1366,7 @@ module powerbitests {
                 expect($('.treemap .shapes .nodeGroup').length).toBe(6);
                 expect($('.treemap .labels .majorLabel').length).toBe(2);
                 expect($('.treemap .labels .minorLabel').length).toBe(4);
-                v.onResizing({ height: 300, width: 300 }, 0);
+                v.onResizing({ height: 300, width: 300 });
                 setTimeout(() => {
                     expect($('.treemap .shapes .rootNode').length).toBe(1);
                     expect($('.treemap .shapes .parentGroup').length).toBe(2);
@@ -1001,7 +1378,7 @@ module powerbitests {
             }, DefaultWaitForRender);
         });
 
-        it('treemap categories and measure dom validation',(done) => {
+        it('treemap categories and measure dom validation', (done) => {
             v.onDataChanged({
                 dataViews: [{
                     metadata: dataViewMetadataCategoryColumn,
@@ -1036,7 +1413,45 @@ module powerbitests {
             }, DefaultWaitForRender);
         });
 
-        it('treemap categories and measure with highlights dom validation',(done) => {
+        it('treemap culls invisible rectangles dom validation', (done) => {
+            //spyOn(hostServices, 'setWarnings').and.callThrough();
+
+            v.onDataChanged({
+                dataViews: [{
+                    metadata: dataViewMetadataCategoryColumn,
+                    categorical: {
+                        categories: [{
+                            source: dataViewMetadataCategoryColumn.columns[0],
+                            values: ['Drama', 'Comedy', 'Documentary'],
+                            identity: [
+                                mocks.dataViewScopeIdentity('a'),
+                                mocks.dataViewScopeIdentity('b'),
+                                mocks.dataViewScopeIdentity('c'),
+                            ],
+                            identityFields: [categoryColumnRef],
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: dataViewMetadataCategoryColumn.columns[1],
+                                values: [110, 120, 0.000000001]
+                            }])
+                    }
+                }]
+            });
+
+            setTimeout(() => {
+                expect($('.treemap .shapes .rootNode').length).toBe(1);
+                expect($('.treemap .shapes .parentGroup').length).toBe(2);
+                expect($('.treemap .shapes .nodeGroup').length).toBe(0);
+                expect($('.treemap .labels .majorLabel').length).toBe(2);
+                expect($('.treemap .labels .majorLabel').last().text()).toBe('Comedy');
+                expect($('.treemap .labels .minorLabel').length).toBe(0);
+                expect(hostServices.setWarnings).toHaveBeenCalledWith([new powerbi.visuals.GeometryCulledWarning()]);
+                done();
+            }, DefaultWaitForRender);
+        });
+
+        it('treemap categories and measure with highlights dom validation', (done) => {
             var categoryIdentities = [
                 mocks.dataViewScopeIdentity("Drama"),
                 mocks.dataViewScopeIdentity("Comedy"),
@@ -1075,7 +1490,7 @@ module powerbitests {
             }, DefaultWaitForRender);
         });
 
-        it('treemap categories and measure with overflowing highlights dom validation',(done) => {
+        it('treemap categories and measure with overflowing highlights dom validation', (done) => {
             v.onDataChanged({
                 dataViews: [{
                     metadata: dataViewMetadataCategoryColumn,
@@ -1113,7 +1528,7 @@ module powerbitests {
             }, DefaultWaitForRender);
         });
 
-        it('treemap categories and measures with highlights dom validation',(done) => {
+        it('treemap categories and measures with highlights dom validation', (done) => {
             v.onDataChanged({
                 dataViews: [{
                     metadata: dataViewMetadataCategoryAndMeasures,
@@ -1155,7 +1570,7 @@ module powerbitests {
             }, DefaultWaitForRender);
         });
 
-        it('treemap categories and measure onDataChanged dom validation',(done) => {
+        it('treemap categories and measure onDataChanged dom validation', (done) => {
             var initialDataViews: DataView[] = [{
                 metadata: dataViewMetadataCategoryColumn,
                 categorical: {
@@ -1218,7 +1633,7 @@ module powerbitests {
             }, DefaultWaitForRender);
         });
 
-        it('treemap categories and measure onResize from small to medium tile dom validation',(done) => {
+        it('treemap categories and measure onResize from small to medium tile dom validation', (done) => {
             v.onDataChanged({
                 dataViews: [{
                     metadata: dataViewMetadataCategoryColumn,
@@ -1245,7 +1660,7 @@ module powerbitests {
             v.onResizing({
                 height: 100,
                 width: 200
-            }, 0);
+            });
 
             setTimeout(() => {
                 expect($('.treemap .shapes .rootNode').length).toBe(1);
@@ -1253,7 +1668,7 @@ module powerbitests {
                 expect($('.treemap .shapes .nodeGroup').length).toBe(0);
                 expect($('.treemap .labels .majorLabel').length).toBe(3);
                 expect($('.treemap .labels .minorLabel').length).toBe(0);
-                v.onResizing({ height: 300, width: 300 }, 0);
+                v.onResizing({ height: 300, width: 300 });
                 setTimeout(() => {
                     expect($('.treemap .shapes .rootNode').length).toBe(1);
                     expect($('.treemap .shapes .parentGroup').length).toBe(3);
@@ -1265,7 +1680,7 @@ module powerbitests {
             }, DefaultWaitForRender);
         });
 
-        it('treemap category and measure labeling validation',(done) => {
+        it('treemap category and measure labeling validation', (done) => {
             v.onDataChanged({
                 dataViews: [{
                     metadata: dataViewMetadataCategoryColumnAndLongText,
@@ -1293,7 +1708,7 @@ module powerbitests {
             v.onResizing({
                 height: 12,
                 width: 100
-            }, 0);
+            });
 
             setTimeout(() => {
                 expect($('.treemap .shapes .rootNode').length).toBe(1);
@@ -1301,7 +1716,7 @@ module powerbitests {
                 expect($('.treemap .shapes .nodeGroup').length).toBe(2);
                 expect($('.treemap .labels .majorLabel').length).toBe(0);
                 expect($('.treemap .labels .minorLabel').length).toBe(0);
-                v.onResizing({ height: 24, width: 100 }, 0);
+                v.onResizing({ height: 24, width: 100 });
                 setTimeout(() => {
                     expect($('.treemap .shapes .rootNode').length).toBe(1);
                     expect($('.treemap .shapes .parentGroup').length).toBe(1);
@@ -1309,7 +1724,7 @@ module powerbitests {
                     expect($('.treemap .labels .majorLabel').length).toBe(1);
                     expect($('.treemap .labels .minorLabel').length).toBe(0);
                     expect($('.treemap .labels .majorLabel').first().text().length).toBeGreaterThan(0);
-                    v.onResizing({ height: 32, width: 200 }, 0);
+                    v.onResizing({ height: 32, width: 200 });
                     setTimeout(() => {
                         expect($('.treemap .shapes .rootNode').length).toBe(1);
                         expect($('.treemap .shapes .parentGroup').length).toBe(1);
@@ -1317,7 +1732,7 @@ module powerbitests {
                         expect($('.treemap .labels .majorLabel').length).toBe(1);
                         expect($('.treemap .labels .minorLabel').length).toBe(0);
                         expect($('.treemap .labels .majorLabel').first().text().length).toBeGreaterThan(0);
-                        v.onResizing({ height: 64, width: 200 }, 0);
+                        v.onResizing({ height: 64, width: 200 });
                         setTimeout(() => {
                             expect($('.treemap .shapes .rootNode').length).toBe(1);
                             expect($('.treemap .shapes .parentGroup').length).toBe(1);
@@ -1362,11 +1777,12 @@ module powerbitests {
                                 source: dataViewMetadataCategorySeriesColumns.columns[4],
                                 values: [310, 320],
                                 identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201503')),
-                            }])
+                            }],
+                            undefined,
+                            dataViewMetadataCategorySeriesColumns.columns[1])
                     }
                 };
 
-                dataView.categorical.values.source = dataViewMetadataCategorySeriesColumns.columns[1];
                 // Check legend should show, if show is undefined
                 dataView.metadata.objects = { legend: {} };
 
@@ -1389,27 +1805,38 @@ module powerbitests {
                         v.onDataChanged({
                             dataViews: [dataView]
                         });
+
                         setTimeout(() => {
                             expect($('.legendItem')).toBeInDOM();
-                            //set title
-                            var testTitle = 'Test Title';
-                            dataView.metadata.objects = { legend: { show: true, position: 'Right', showTitle: true, titleText: testTitle } };
+
+                            dataView.metadata.objects = { legend: { show: true, position: 'TopCenter', showTitle: true } };
                             v.onDataChanged({
                                 dataViews: [dataView]
                             });
                             setTimeout(() => {
+                                expect($('#legendGroup').attr('transform')).toBeDefined();
 
-                                expect($('.legendItem')).toBeInDOM();
-                                expect($('.legendTitle').text()).toBe(testTitle);
-
-                                //hide legend
-                                dataView.metadata.objects = { legend: { show: false, position: 'Right' } };
+                                //set title
+                                var testTitle = 'Test Title';
+                                dataView.metadata.objects = { legend: { show: true, position: 'Right', showTitle: true, titleText: testTitle } };
                                 v.onDataChanged({
                                     dataViews: [dataView]
                                 });
                                 setTimeout(() => {
-                                    expect($('.legendItem')).not.toBeInDOM();
-                                    done();
+
+                                    expect($('.legendItem')).toBeInDOM();
+                                    expect($('.legendTitle').text()).toBe(testTitle);
+                                    expect($('#legendGroup').attr('transform')).not.toBeDefined();
+
+                                    //hide legend
+                                    dataView.metadata.objects = { legend: { show: false, position: 'Right' } };
+                                    v.onDataChanged({
+                                        dataViews: [dataView]
+                                    });
+                                    setTimeout(() => {
+                                        expect($('.legendItem')).not.toBeInDOM();
+                                        done();
+                                    }, DefaultWaitForRender);
                                 }, DefaultWaitForRender);
                             }, DefaultWaitForRender);
                         }, DefaultWaitForRender);
@@ -1419,21 +1846,15 @@ module powerbitests {
         }
     };
 
-    describe("Treemap DOM validation",() => treemapDomValidation(false));
-    describe("Treemap DOM validation - with legend",() => treemapDomValidation(true));
+    describe("Treemap DOM validation", () => treemapDomValidation(false));
+    describe("Treemap DOM validation - with legend", () => treemapDomValidation(true));
 
     describe("treemap web animation",() => {
         var v: powerbi.IVisual, element: JQuery;
 
         beforeEach(() => {
-            powerbitests.mocks.setLocale(powerbi.common.createLocalizationService());
-        });
-
-        beforeEach(() => {
             element = powerbitests.helpers.testDom('500', '500');
-            v = powerbi.visuals.visualPluginFactory.createMinerva({
-                heatMap: false,
-            }).getPlugin('treemap').create();
+            v = powerbi.visuals.visualPluginFactory.createMinerva({}).getPlugin('treemap').create();
             v.init({
                 element: element,
                 host: powerbitests.mocks.createVisualHostServices(),
@@ -1473,11 +1894,12 @@ module powerbitests {
                                 source: dataViewMetadataCategorySeriesColumns.columns[4],
                                 values: [310, 320],
                                 identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201503')),
-                            }])
+                            }],
+                            undefined,
+                            dataViewMetadataCategorySeriesColumns.columns[1])
                     }
                 }]
             };
-            noHighlightsDataViews.dataViews[0].categorical.values.source = dataViewMetadataCategorySeriesColumns.columns[1];
 
             var highlightsDataViewsA = {
                 dataViews: [{
@@ -1508,11 +1930,12 @@ module powerbitests {
                                 values: [310, 320],
                                 highlights: [260, 270],
                                 identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201503')),
-                            }])
+                            }],
+                            undefined,
+                            dataViewMetadataCategorySeriesColumns.columns[1])
                     }
                 }]
             };
-            highlightsDataViewsA.dataViews[0].categorical.values.source = dataViewMetadataCategorySeriesColumns.columns[1];
 
             var highlightsDataViewsB = {
                 dataViews: [{
@@ -1543,11 +1966,12 @@ module powerbitests {
                                 values: [310, 320],
                                 highlights: [220, 210],
                                 identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201503')),
-                            }])
+                            }],
+                            undefined,
+                            dataViewMetadataCategorySeriesColumns.columns[1])
                     }
                 }]
             };
-            highlightsDataViewsB.dataViews[0].categorical.values.source = dataViewMetadataCategorySeriesColumns.columns[1];
 
             v.onDataChanged(noHighlightsDataViews);
             setTimeout(() => {
@@ -1575,6 +1999,142 @@ module powerbitests {
                 }, DefaultWaitForRender);
             }, DefaultWaitForRender);
         });
+
+        it('treemap highlight animation - suppressAnimations', (done) => {
+            var noHighlightsDataViews = {
+                suppressAnimations: true,
+                dataViews: [{
+                    metadata: dataViewMetadataCategorySeriesColumns,
+                    categorical: {
+                        categories: [{
+                            source: dataViewMetadataCategorySeriesColumns.columns[0],
+                            values: ['The Nuthatches', 'Skylarks'],
+                            identity: [
+                                mocks.dataViewScopeIdentity('The Nuthatches'),
+                                mocks.dataViewScopeIdentity('Skylarks'),
+                            ],
+                            identityFields: [categoryColumnRef],
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: dataViewMetadataCategorySeriesColumns.columns[2],
+                                values: [110, 120],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201501')),
+                            }, {
+                                source: dataViewMetadataCategorySeriesColumns.columns[3],
+                                values: [210, 220],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201502')),
+                            }, {
+                                source: dataViewMetadataCategorySeriesColumns.columns[4],
+                                values: [310, 320],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201503')),
+                            }],
+                            undefined,
+                            dataViewMetadataCategorySeriesColumns.columns[1])
+                    }
+                }]
+            };
+
+            var highlightsDataViewsA = {
+                suppressAnimations: true,
+                dataViews: [{
+                    metadata: dataViewMetadataCategorySeriesColumns,
+                    categorical: {
+                        categories: [{
+                            source: dataViewMetadataCategorySeriesColumns.columns[0],
+                            values: ['The Nuthatches', 'Skylarks'],
+                            identity: [
+                                mocks.dataViewScopeIdentity('The Nuthatches'),
+                                mocks.dataViewScopeIdentity('Skylarks'),
+                            ],
+                            identityFields: [categoryColumnRef],
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: dataViewMetadataCategorySeriesColumns.columns[2],
+                                values: [110, 120],
+                                highlights: [60, 70],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201501')),
+                            }, {
+                                source: dataViewMetadataCategorySeriesColumns.columns[3],
+                                values: [210, 220],
+                                highlights: [160, 170],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201502')),
+                            }, {
+                                source: dataViewMetadataCategorySeriesColumns.columns[4],
+                                values: [310, 320],
+                                highlights: [260, 270],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201503')),
+                            }],
+                            undefined,
+                            dataViewMetadataCategorySeriesColumns.columns[1])
+                    }
+                }]
+            };
+
+            var highlightsDataViewsB = {
+                suppressAnimations: true,
+                dataViews: [{
+                    metadata: dataViewMetadataCategorySeriesColumns,
+                    categorical: {
+                        categories: [{
+                            source: dataViewMetadataCategorySeriesColumns.columns[0],
+                            values: ['The Nuthatches', 'Skylarks'],
+                            identity: [
+                                mocks.dataViewScopeIdentity('The Nuthatches'),
+                                mocks.dataViewScopeIdentity('Skylarks'),
+                            ],
+                            identityFields: [categoryColumnRef],
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: dataViewMetadataCategorySeriesColumns.columns[2],
+                                values: [110, 120],
+                                highlights: [20, 10],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201501')),
+                            }, {
+                                source: dataViewMetadataCategorySeriesColumns.columns[3],
+                                values: [210, 220],
+                                highlights: [120, 110],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201502')),
+                            }, {
+                                source: dataViewMetadataCategorySeriesColumns.columns[4],
+                                values: [310, 320],
+                                highlights: [220, 210],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201503')),
+                            }],
+                            undefined,
+                            dataViewMetadataCategorySeriesColumns.columns[1])
+                    }
+                }]
+            };
+
+            v.onDataChanged(noHighlightsDataViews);
+            setTimeout(() => {
+                var svgInit = $('.treemap');
+                var initialHeight = svgInit.attr('height'), initialWidth = svgInit.attr('width');
+
+                var animator = <powerbi.visuals.WebTreemapAnimator>(<Treemap>v).animator;
+                spyOn(animator, 'animate').and.callThrough();
+
+                v.onDataChanged(highlightsDataViewsA);
+                v.onDataChanged(highlightsDataViewsB);
+                v.onDataChanged(noHighlightsDataViews);
+
+                expect(animator).toBeTruthy();
+                expect(animator.animate).not.toHaveBeenCalled();
+
+                setTimeout(() => {
+                    var svg = $('.treemap');
+                    expect(svg).toBeInDOM();
+
+                    expect(svg.attr('height')).toBe(initialHeight);
+                    expect(svg.attr('width')).toBe(initialWidth);
+
+                    done();
+                }, DefaultWaitForRender);
+            }, DefaultWaitForRender);
+        });
     });
 
     describe("treemap interactivity",() => {
@@ -1582,10 +2142,6 @@ module powerbitests {
         var hostServices: powerbi.IVisualHostServices;
         var defaultOpacity = '';
         var dimmedOpacity = Treemap.DimmedShapeOpacity.toString();
-
-        beforeEach(() => {
-            powerbitests.mocks.setLocale(powerbi.common.createLocalizationService());
-        });
 
         beforeEach(() => {
             element = powerbitests.helpers.testDom('500', '500');
@@ -1637,11 +2193,12 @@ module powerbitests {
                                 source: dataViewMetadataCategorySeriesColumns.columns[4],
                                 values: [310, 320],
                                 identity: seriesIdentities[2],
-                            }])
+                            }],
+                            undefined,
+                            dataViewMetadataCategorySeriesColumns.columns[1])
                     }
                 }]
             };
-            onDataChangedOptions.dataViews[0].categorical.values.source = dataViewMetadataCategorySeriesColumns.columns[1];
             v.onDataChanged(onDataChangedOptions);
 
             setTimeout(() => {
@@ -1666,7 +2223,12 @@ module powerbitests {
                     {
                         data: [
                             {
-                        data: [categoryIdentities[0]]
+                                data: [categoryIdentities[0]]
+                            }
+                        ],
+                        data2: [
+                            {
+                                dataMap: { 'select0': categoryIdentities[0] }
                             }
                         ]
                     });
@@ -1688,6 +2250,11 @@ module powerbitests {
                             {
                                 data: [categoryIdentities[0], seriesIdentities[0]]
                             }
+                        ],
+                        data2: [
+                            {
+                                dataMap: { 'select0': categoryIdentities[0], 'select1': seriesIdentities[0] }
+                            }
                         ]
                     });
 
@@ -1707,6 +2274,11 @@ module powerbitests {
                         data: [
                             {
                                 data: [categoryIdentities[1], seriesIdentities[2]]
+                            }
+                        ],
+                        data2: [
+                            {
+                                dataMap: { 'select0': categoryIdentities[1], 'select1': seriesIdentities[2] }
                             }
                         ]
                     });
@@ -1781,7 +2353,12 @@ module powerbitests {
                     {
                         data: [
                             {
-                        data: [identities[1]]
+                                data: [identities[1]]
+                            }
+                        ],
+                        data2: [
+                            {
+                                dataMap: { 'select0': identities[1] }
                             }
                         ]
                     });
@@ -1818,16 +2395,17 @@ module powerbitests {
                             source: dataViewMetadataCategorySeriesColumns.columns[4],
                             values: [310, 320],
                             identity: mocks.dataViewScopeIdentity('201503'),
-                        }])
+                        }],
+                        undefined,
+                        dataViewMetadataCategorySeriesColumns.columns[1])
                 }
             }];
-            initialDataViews[0].categorical.values.source = dataViewMetadataCategorySeriesColumns.columns[1];
             var updatedMetadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'Squad', properties: { "Category": true }, type: DataShapeUtility.describeDataType(SemanticType.String) },
-                    { displayName: 'Period', properties: { "Series": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: '201503', isMeasure: true, properties: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: '201504', isMeasure: true, properties: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) }
+                    { displayName: 'Squad', properties: { "Category": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                    { displayName: 'Period', properties: { "Series": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: '201503', isMeasure: true, properties: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: '201504', isMeasure: true, properties: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
                 ]
             };
             var updatedDataViewsSeriesIdentities: powerbi.DataViewScopeIdentity[] = [
@@ -1851,10 +2429,11 @@ module powerbitests {
                             source: updatedMetadata.columns[3],
                             values: [310, 320],
                             identity: updatedDataViewsSeriesIdentities[1],
-                        }])
+                        }],
+                        undefined,
+                        dataViewMetadataCategorySeriesColumns.columns[1])
                 }
             }];
-            updatedDataViews[0].categorical.values.source = dataViewMetadataCategorySeriesColumns.columns[1];
 
             v.onDataChanged({ dataViews: initialDataViews });
 
@@ -1943,11 +2522,12 @@ module powerbitests {
                                 source: dataViewMetadataCategorySeriesColumns.columns[4],
                                 values: [310, 320],
                                 identity: seriesIdentities[2],
-                            }])
+                            }],
+                            undefined,
+                            dataViewMetadataCategorySeriesColumns.columns[1])
                     }
                 }]
             };
-            onDataChangedOptions.dataViews[0].categorical.values.source = dataViewMetadataCategorySeriesColumns.columns[1];
             v.onDataChanged(onDataChangedOptions);
 
             setTimeout(() => {
@@ -1972,12 +2552,17 @@ module powerbitests {
                     {
                         data: [
                             {
-                        data: [categoryIdentities[0]]
+                                data: [categoryIdentities[0]]
+                            }
+                        ],
+                        data2: [
+                            {
+                                dataMap: { 'select0': categoryIdentities[0] }
                             }
                         ]
                     });
 
-                v.onResizing({ width: 300, height: 300 }, 0);
+                v.onResizing({ width: 300, height: 300 });
 
                 setTimeout(() => {
                     // Select a major label
@@ -2032,11 +2617,12 @@ module powerbitests {
                                 source: dataViewMetadataCategorySeriesColumns.columns[4],
                                 values: [310, 320],
                                 identity: seriesIdentities[2]
-                            }])
+                            }],
+                            undefined,
+                            dataViewMetadataCategorySeriesColumns.columns[1])
                     }
                 }]
             };
-            onDataChangedOptions.dataViews[0].categorical.values.source = dataViewMetadataCategorySeriesColumns.columns[1];
             v.onDataChanged(onDataChangedOptions);
 
             setTimeout(() => {
@@ -2062,6 +2648,11 @@ module powerbitests {
                             {
                                 data: [categoryIdentities[0], seriesIdentities[0]]
                             }
+                        ],
+                        data2: [
+                            {
+                                dataMap: { 'select0': categoryIdentities[0], 'select1': seriesIdentities[0] }
+                            }
                         ]
                     });
 
@@ -2082,9 +2673,10 @@ module powerbitests {
 
     describe("treemap converter validation",() => {
 
-        beforeEach(() => {
-            powerbitests.mocks.setLocale(powerbi.common.createLocalizationService());
-        });
+        var viewport: powerbi.IViewport = {
+            width: 500,
+            height: 500,
+        };
 
         it('treemap dataView multi measure',() => {
             var metadata: powerbi.DataViewMetadata = {
@@ -2094,7 +2686,7 @@ module powerbitests {
                         queryName: 'EventCount',
                         isMeasure: true,
                         properties: { "Y": true },
-                        type: DataShapeUtility.describeDataType(SemanticType.Number),
+                        type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double),
                         objects: { dataPoint: { fill: { solid: { color: 'red' } } } }
                     },
                     {
@@ -2102,7 +2694,7 @@ module powerbitests {
                         queryName: 'MedalCount',
                         isMeasure: true,
                         properties: { "Y": true },
-                        type: DataShapeUtility.describeDataType(SemanticType.Number)
+                        type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double)
                     }
                 ]
             };
@@ -2123,7 +2715,7 @@ module powerbitests {
 
             var dataLabelSettings = powerbi.visuals.dataLabelUtils.getDefaultLabelSettings();
             var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var treeMapData = Treemap.converter(dataView, colors, dataLabelSettings, null);
+            var treeMapData = Treemap.converter(dataView, colors, dataLabelSettings, null, viewport);
             var rootNode = treeMapData.root;
             var selectionIds: SelectionId[] = [
                 SelectionId.createWithMeasure("EventCount"),
@@ -2154,8 +2746,8 @@ module powerbitests {
         it('treemap dataView multi measure with null values',() => {
             var metadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'EventCount', queryName: 'EventCount', isMeasure: true, properties: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'MedalCount', queryName: 'MedalCount', isMeasure: true, properties: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) }
+                    { displayName: 'EventCount', queryName: 'EventCount', isMeasure: true, properties: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'MedalCount', queryName: 'MedalCount', isMeasure: true, properties: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
                 ]
             };
 
@@ -2175,7 +2767,7 @@ module powerbitests {
 
             var dataLabelSettings = powerbi.visuals.dataLabelUtils.getDefaultLabelSettings();
             var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var treeMapData = Treemap.converter(dataView, colors, dataLabelSettings, null);
+            var treeMapData = Treemap.converter(dataView, colors, dataLabelSettings, null, viewport);
             var rootNode = treeMapData.root;
             var selectionIds: SelectionId[] = [
                 SelectionId.createWithMeasure("EventCount"),
@@ -2197,9 +2789,9 @@ module powerbitests {
         it('treemap dataView multi category multi measure',() => {
             var metadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'Continent', queryName: 'select0', properties: { "Category": true }, type: DataShapeUtility.describeDataType(SemanticType.String) },
-                    { displayName: 'EventCount', queryName: 'select1', isMeasure: true, properties: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'MedalCount', queryName: 'select2', isMeasure: true, properties: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) }
+                    { displayName: 'Continent', queryName: 'select0', properties: { "Category": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                    { displayName: 'EventCount', queryName: 'select1', isMeasure: true, properties: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'MedalCount', queryName: 'select2', isMeasure: true, properties: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
                 ]
             };
             var categoryIdentities = [
@@ -2232,7 +2824,7 @@ module powerbitests {
 
             var dataLabelSettings = powerbi.visuals.dataLabelUtils.getDefaultLabelSettings();
             var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var treeMapData = Treemap.converter(dataView, colors, dataLabelSettings, null);
+            var treeMapData = Treemap.converter(dataView, colors, dataLabelSettings, null, viewport);
             var rootNode = treeMapData.root;
 
             var selectionIds: SelectionId[] = categoryIdentities.map((categoryId) => SelectionId.createWithId(categoryId));
@@ -2306,8 +2898,8 @@ module powerbitests {
 
             var metadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'Year', properties: { "Series": true }, type: DataShapeUtility.describeDataType(SemanticType.String) },
-                    { displayName: 'MedalCount', isMeasure: true, properties: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) }
+                    { displayName: 'Year', queryName: 'select0', properties: { "Series": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                    { displayName: 'MedalCount', queryName: 'select1', isMeasure: true, properties: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
                 ]
             };
             var categoryIdentities = [
@@ -2335,7 +2927,7 @@ module powerbitests {
 
             var dataLabelSettings = powerbi.visuals.dataLabelUtils.getDefaultLabelSettings();
             var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var treeMapData = Treemap.converter(dataView, colors, dataLabelSettings, null);
+            var treeMapData = Treemap.converter(dataView, colors, dataLabelSettings, null, viewport);
             var rootNode = treeMapData.root;
             var selectionIds = [
                 SelectionId.createWithId(categoryIdentities[0]),
@@ -2367,11 +2959,11 @@ module powerbitests {
 
             var metadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'Continent', properties: { "Category": true }, type: DataShapeUtility.describeDataType(SemanticType.String) },
-                    { displayName: 'Year', properties: { "Series": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: null, groupName: '2004', isMeasure: true, properties: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: null, groupName: '2008', isMeasure: true, properties: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: null, groupName: '2012', isMeasure: true, properties: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) }
+                    { queryName: 'selectA', displayName: 'Continent', properties: { "Category": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                    { queryName: 'selectB', displayName: 'Year', properties: { "Series": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { queryName: 'selectC', displayName: null, groupName: '2004', isMeasure: true, properties: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { queryName: 'selectD', displayName: null, groupName: '2008', isMeasure: true, properties: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { queryName: 'selectE', displayName: null, groupName: '2012', isMeasure: true, properties: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
                 ]
             };
             var categoryIdentities = [
@@ -2409,14 +3001,15 @@ module powerbitests {
                             source: metadata.columns[4],
                             values: [310, 320, 330, 340, 350],
                             identity: seriesIdentities[2],
-                        }])
+                        }],
+                        undefined,
+                        metadata.columns[1])
                 }
             };
-            dataView.categorical.values.source = metadata.columns[1];
 
             var dataLabelSettings = powerbi.visuals.dataLabelUtils.getDefaultLabelSettings();
             var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var treeMapData = Treemap.converter(dataView, colors, dataLabelSettings, null);
+            var treeMapData = Treemap.converter(dataView, colors, dataLabelSettings, null, viewport);
             var rootNode = treeMapData.root;
             var selectionIds: SelectionId[] = [
                 SelectionId.createWithId(categoryIdentities[0]),
@@ -2457,11 +3050,11 @@ module powerbitests {
         it('treemap dataView multi category/series with null values',() => {
             var metadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'Continent', properties: { "Category": true }, type: DataShapeUtility.describeDataType(SemanticType.String) },
-                    { displayName: 'Year', properties: { "Series": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: null, groupName: '2004', isMeasure: true, properties: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: null, groupName: '2008', isMeasure: true, properties: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: null, groupName: '2012', isMeasure: true, properties: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) }
+                    { displayName: 'Continent', queryName: 'select1', properties: { "Category": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                    { displayName: 'Year', properties: { "Series": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: null, groupName: '2004', isMeasure: true, properties: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: null, groupName: '2008', isMeasure: true, properties: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: null, groupName: '2012', isMeasure: true, properties: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
                 ]
             };
             var categoryIdentities = [
@@ -2505,7 +3098,7 @@ module powerbitests {
 
             var dataLabelSettings = powerbi.visuals.dataLabelUtils.getDefaultLabelSettings();
             var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var treeMapData = Treemap.converter(dataView, colors, dataLabelSettings, null);
+            var treeMapData = Treemap.converter(dataView, colors, dataLabelSettings, null, viewport);
             var rootNode = treeMapData.root;
 
             var nodes = rootNode.children;
@@ -2528,11 +3121,11 @@ module powerbitests {
         it('treemap dataView multi category/series with null values tooltip data test',() => {
             var metadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'Continent', properties: { "Category": true }, type: DataShapeUtility.describeDataType(SemanticType.String) },
-                    { displayName: 'Year', properties: { "Series": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: null, groupName: '2004', isMeasure: true, properties: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: null, groupName: '2008', isMeasure: true, properties: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: null, groupName: '2012', isMeasure: true, properties: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) }
+                    { displayName: 'Continent', properties: { "Category": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                    { displayName: 'Year', properties: { "Series": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: null, groupName: '2004', isMeasure: true, properties: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: null, groupName: '2008', isMeasure: true, properties: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: null, groupName: '2012', isMeasure: true, properties: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
                 ]
             };
             var categoryIdentities = [
@@ -2576,7 +3169,7 @@ module powerbitests {
 
             var dataLabelSettings = powerbi.visuals.dataLabelUtils.getDefaultLabelSettings();
             var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var rootNode = Treemap.converter(dataView, colors, dataLabelSettings, null).root;
+            var rootNode = Treemap.converter(dataView, colors, dataLabelSettings, null, viewport).root;
 
             var node1: TreemapNode = <TreemapNode>rootNode.children[0];
             var node11: TreemapNode = <TreemapNode>rootNode.children[0].children[0];
@@ -2596,9 +3189,9 @@ module powerbitests {
         it('treemap non-categorical multi-measure tooltip values test',() => {
             var dataViewMetadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'a', isMeasure: true },
-                    { displayName: 'b', isMeasure: true },
-                    { displayName: 'c', isMeasure: true }
+                    { displayName: 'a', queryName: 'a', isMeasure: true },
+                    { displayName: 'b', queryName: 'b', isMeasure: true },
+                    { displayName: 'c', queryName: 'c', isMeasure: true }
                 ]
             };
 
@@ -2624,7 +3217,7 @@ module powerbitests {
 
             var dataLabelSettings = powerbi.visuals.dataLabelUtils.getDefaultLabelSettings();
             var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var rootNode = Treemap.converter(dataView, colors, dataLabelSettings, null).root;
+            var rootNode = Treemap.converter(dataView, colors, dataLabelSettings, null, viewport).root;
 
             var node1: TreemapNode = <TreemapNode>rootNode.children[0];
             var node2: TreemapNode = <TreemapNode>rootNode.children[1];
@@ -2638,8 +3231,8 @@ module powerbitests {
         it('treemap dataView multi measure',() => {
             var metadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'EventCount', queryName: 'select1', isMeasure: true, properties: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'MedalCount', queryName: 'select2', isMeasure: true, properties: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) }
+                    { displayName: 'EventCount', queryName: 'select1', isMeasure: true, properties: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'MedalCount', queryName: 'select2', isMeasure: true, properties: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
                 ]
             };
             var dataView: DataView = {
@@ -2658,7 +3251,7 @@ module powerbitests {
 
             var dataLabelSettings = powerbi.visuals.dataLabelUtils.getDefaultLabelSettings();
             var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var treeMapData = Treemap.converter(dataView, colors, dataLabelSettings, null);
+            var treeMapData = Treemap.converter(dataView, colors, dataLabelSettings, null, viewport);
             var rootNode = treeMapData.root;
 
             var selectionIds: SelectionId[] = metadata.columns.map((measure) => SelectionId.createWithMeasure(measure.queryName));
@@ -2690,7 +3283,7 @@ module powerbitests {
         it('treemap dataView single measure',() => {
             var metadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'EventCount', queryName: 'select1', isMeasure: true, properties: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) }
+                    { displayName: 'EventCount', queryName: 'select1', isMeasure: true, properties: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
                 ]
             };
             var dataView: DataView = {
@@ -2707,7 +3300,7 @@ module powerbitests {
 
             var dataLabelSettings = powerbi.visuals.dataLabelUtils.getDefaultLabelSettings();
             var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var treeMapData = Treemap.converter(dataView, colors, dataLabelSettings, null);
+            var treeMapData = Treemap.converter(dataView, colors, dataLabelSettings, null, viewport);
             var rootNode = treeMapData.root;
 
             var selectionIds: SelectionId[] = metadata.columns.map((measure) => SelectionId.createWithMeasure(measure.queryName));
@@ -2757,7 +3350,7 @@ module powerbitests {
 
             var dataLabelSettings = powerbi.visuals.dataLabelUtils.getDefaultLabelSettings();
             var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var rootNode = Treemap.converter(dataView, colors, dataLabelSettings, null).root;
+            var rootNode = Treemap.converter(dataView, colors, dataLabelSettings, null, viewport).root;
             var node1: TreemapNode = <TreemapNode>rootNode.children[0].children[0];
             var node2: TreemapNode = <TreemapNode>rootNode.children[0].children[1];
             var node3: TreemapNode = <TreemapNode>rootNode.children[1].children[0];
@@ -2819,12 +3412,118 @@ module powerbitests {
 
             var dataLabelSettings = powerbi.visuals.dataLabelUtils.getDefaultLabelSettings();
             var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
-            var rootNode = Treemap.converter(dataView, colors, dataLabelSettings, null, null).root;
+            var rootNode = Treemap.converter(dataView, colors, dataLabelSettings, null, viewport, null).root;
             var node1: TreemapNode = <TreemapNode>rootNode.children[0];
             var node2: TreemapNode = <TreemapNode>rootNode.children[1];
 
             expect(node1.color).toEqual(dataPointColors[0]);
             expect(node2.color).toEqual(dataPointColors[1]);
+        });
+
+        it("treemap gradient color test - validate tool tip", () => {
+            var dataPointColors = ["#d9f2fb", "#ff557f", "#b1eab7"];
+            var objectDefinitions: powerbi.DataViewObjects[] = [
+                { dataPoint: { fill: { solid: { color: dataPointColors[0] } } } },
+                { dataPoint: { fill: { solid: { color: dataPointColors[1] } } } },
+                { dataPoint: { fill: { solid: { color: dataPointColors[2] } } } }
+            ];
+
+            var dataViewGradientMetadata: powerbi.DataViewMetadata = {
+                columns: [
+                    { displayName: 'col1' },
+                    { displayName: 'col2', isMeasure: true },
+                    { displayName: 'col3', roles: { 'Gradient': true } }
+                ]
+            };
+
+            var dataView: DataView = {
+                metadata: dataViewGradientMetadata,
+                categorical: {
+                    categories: [{
+                        source: dataViewGradientMetadata.columns[0],
+                        values: ['Front end', 'Back end'],
+                        objects: objectDefinitions,
+                        identity: [
+                            mocks.dataViewScopeIdentity('f'),
+                            mocks.dataViewScopeIdentity('b'),
+                        ]
+                    }],
+                    values: DataViewTransform.createValueColumns([
+                        {
+                            source: dataViewGradientMetadata.columns[1],
+                            values: [110, 120]
+                        }, {
+                            source: dataViewGradientMetadata.columns[2],
+                            values: [210, 220]
+                        }])
+                }
+            };
+
+            var dataLabelSettings = powerbi.visuals.dataLabelUtils.getDefaultLabelSettings();
+            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            var rootNode = Treemap.converter(dataView, colors, dataLabelSettings, null, viewport, null).root;
+            var node1: TreemapNode = <TreemapNode>rootNode.children[0].children[0];
+            var node2: TreemapNode = <TreemapNode>rootNode.children[0].children[1];
+            var node3: TreemapNode = <TreemapNode>rootNode.children[1].children[0];
+            var node4: TreemapNode = <TreemapNode>rootNode.children[1].children[1];
+
+            expect(node1.tooltipInfo).toEqual([{ displayName: 'col1', value: 'Front end' }, { displayName: 'col2', value: '110' }, { displayName: 'col3', value: '210' }]);
+            expect(node2.tooltipInfo).toEqual([{ displayName: 'col1', value: 'Front end' }, { displayName: 'col3', value: '210' }]);
+            expect(node3.tooltipInfo).toEqual([{ displayName: 'col1', value: 'Back end' }, { displayName: 'col2', value: '120' }, { displayName: 'col3', value: '220' }]);
+            expect(node4.tooltipInfo).toEqual([{ displayName: 'col1', value: 'Back end' }, { displayName: 'col3', value: '220' }]);
+        });
+
+        it("treemap Gradient and Y have the index - validate tool tip", () => {
+            var dataPointColors = ["#d9f2fb", "#ff557f", "#b1eab7"];
+            var objectDefinitions: powerbi.DataViewObjects[] = [
+                { dataPoint: { fill: { solid: { color: dataPointColors[0] } } } },
+                { dataPoint: { fill: { solid: { color: dataPointColors[1] } } } },
+                { dataPoint: { fill: { solid: { color: dataPointColors[2] } } } }
+            ];
+
+            var dataViewGradientMetadata: powerbi.DataViewMetadata = {
+                columns: [
+                    { displayName: 'col1' },
+                    { displayName: 'col2', isMeasure: true, roles: { 'Y': true, 'Gradient': true } },
+                    { displayName: 'col3', isMeasure: true }
+                ]
+            };
+
+            var dataView: DataView = {
+                metadata: dataViewGradientMetadata,
+                categorical: {
+                    categories: [{
+                        source: dataViewGradientMetadata.columns[0],
+                        values: ['Front end', 'Back end'],
+                        objects: objectDefinitions,
+                        identity: [
+                            mocks.dataViewScopeIdentity('f'),
+                            mocks.dataViewScopeIdentity('b'),
+                        ]
+                    }],
+                    values: DataViewTransform.createValueColumns([
+                        {
+                            source: dataViewGradientMetadata.columns[1],
+                            values: [110, 120],
+                            highlights: [60, 60]
+                        }, {
+                            source: dataViewGradientMetadata.columns[2],
+                            values: [210, 220],
+                            highlights: [140, 200]
+                        }])
+                }
+            };
+
+            var dataLabelSettings = powerbi.visuals.dataLabelUtils.getDefaultLabelSettings();
+            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            var rootNode = Treemap.converter(dataView, colors, dataLabelSettings, null, viewport, null).root;
+            var node1: TreemapNode = <TreemapNode>rootNode.children[0];
+            var node2: TreemapNode = <TreemapNode>rootNode.children[1];
+
+            expect(node1.color).toEqual(dataPointColors[0]);
+            expect(node2.color).toEqual(dataPointColors[1]);
+            expect(node1.tooltipInfo).toEqual([{ displayName: 'col1', value: 'Front end' }, { displayName: 'col2', value: '110' }]);
+            expect(node2.tooltipInfo).toEqual([{ displayName: 'col1', value: 'Back end' }, { displayName: 'col2', value: '120' }]);
         });
     });
 }

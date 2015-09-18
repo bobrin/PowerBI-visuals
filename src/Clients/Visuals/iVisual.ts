@@ -24,6 +24,8 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="_references.ts"/>
+
 module powerbi {
     import DataViewObjectDescriptors = powerbi.data.DataViewObjectDescriptors;
     import DataViewObjectDescriptor = powerbi.data.DataViewObjectDescriptor;
@@ -39,67 +41,56 @@ module powerbi {
         /**
          * Initializes an instance of the IVisual.
          *
-         * @param options: Initialization options for the visual.
+         * @param options Initialization options for the visual.
          */
         init(options: VisualInitOptions): void;
 
         /** Notifies the visual that it is being destroyed, and to do any cleanup necessary (such as unsubscribing event handlers). */
-        destroy? ();
+        destroy?(): void;
 
         /** 
          * Notifies the IVisual of an update (data, viewmode, size change). 
          */
-        update? (options: VisualUpdateOptions): void;
+        update?(options: VisualUpdateOptions): void;
 
         /** 
          * Notifies the IVisual to resize.
          *
-         * @param finalViewport: This is the viewport that the visual will eventually be resized to.
-         * @param duration: This is the duration, in milliseconds, of the animation that is starting right after the execution of this function.
+         * @param finalViewport This is the viewport that the visual will eventually be resized to.
          */
-        onResizing(finalViewport: IViewport, duration: number): void;
+        onResizing?(finalViewport: IViewport): void;
 
         /** 
          * Notifies the IVisual of new data being provided.
          * This is an optional method that can be omitted if the visual is in charge of providing its own data. 
          */
-        onDataChanged? (options: VisualDataChangedOptions): void;
+        onDataChanged?(options: VisualDataChangedOptions): void;
 
         /** Notifies the IVisual of changes to the color, font, theme, and style related values that the visual should use. */
-        onStyleChanged? (newStyle: IVisualStyle): void;
+        onStyleChanged?(newStyle: IVisualStyle): void;
 
         /** Notifies the IVisual to change view mode if applicable. */
-        onViewModeChanged? (viewMode: ViewMode): void;
+        onViewModeChanged?(viewMode: ViewMode): void;
 
         /** Notifies the IVisual to clear any selection. */
-        onClearSelection? (): void;
+        onClearSelection?(): void;
 
         /** Notifies the IVisual to select the specified object. */
-        onSelectObject? (object: VisualObjectInstance): void;
+        onSelectObject?(object: VisualObjectInstance): void;
 
         /** Gets a value indicating whether the IVisual can be resized to the given viewport. */
-        canResizeTo? (viewport: IViewport): boolean;
+        canResizeTo?(viewport: IViewport): boolean;
 
-        /**
-         * Gets the set of objects that the visual is currently displaying.
-         *
-         * @param objectName: Name of the object, as defined in the VisualCapabilities.
-         */
-        enumerateObjectInstances? (options: EnumerateVisualObjectInstancesOptions): VisualObjectInstance[];
+        /** Gets the set of objects that the visual is currently displaying. */
+        enumerateObjectInstances?(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstance[];
     }
 
     export interface IVisualPlugin {
         /** The name of the plugin.  Must match the property name in powerbi.visuals. */
         name: string;
 
-        /** The css style of this visual. Must match the style name in ExploreUI/styles/sprites.less */
-        class?: string;
-
         /** The key for the watermark style of this visual. Must match the id name in ExploreUI/views/svg/visualsWatermarks.svg */
         watermarkKey?: string;
-
-        /** The key for to the localized tooltip of this visual */
-        title?: string;
 
         /** Declares the capabilities for this IVisualPlugin type. */
         capabilities?: VisualCapabilities;
@@ -112,6 +103,9 @@ module powerbi {
           * so the visual can translate its state into options understood by the query generator. 
           */
         customizeQuery?: CustomizeQueryMethod;
+
+        /** The class of the plugin.  At the moment it is only used to have a way to indicate the class name that a custom visual has. */
+        class?: string;
 
         /* Function to get the list of sortable roles */
         getSortableRoles?: (visualSortableOptions?: VisualSortableOptions) => string[];
@@ -129,6 +123,11 @@ module powerbi {
          * are expected to edit this in-place.
          */
         dataViewMappings: data.CompiledDataViewMapping[];
+
+        /**
+         * Visual should prefer to request a higher volume of data.
+         */
+        preferHigherDataVolume?: boolean;
     }
 
     /** Parameters available to a sortable visual candidate */
@@ -177,7 +176,13 @@ module powerbi {
         sorting?: VisualSortingCapabilities;
 
         /** Indicates whether a default title should be displayed.  Visuals with self-describing layout can omit this. */
-        suppressDefaultTitle?: boolean; 
+        suppressDefaultTitle?: boolean;
+
+        /** Indicates whether drilling is supported by the visual. */
+        drilldown?: VisualDrillCapabilities;
+        
+        /** Indicates whether rotating is supported by the visual. */
+        canRotate?: boolean;
     }
 
     /** Defines the data roles understood by the IVisual. */
@@ -204,6 +209,12 @@ module powerbi {
 
         /** When specified, indicates sorting that is inherently implied by the IVisual.  This is useful to automatically sort. */
         implicit?: VisualImplicitSorting;
+    }
+
+    /** Defines the visual's drill capability. */
+    export interface VisualDrillCapabilities {
+        /** Returns the drillable role names for this visual **/
+        roles?: string[];
     }
 
     /** Defines implied sorting behaviour for an IVisual. */
@@ -239,10 +250,6 @@ module powerbi {
         /** The initial viewport size. */
         viewport: IViewport;
 
-        // TODO: Deprecate VisualSettings, and move content to DataView.metadata.properties (or elsewhere).
-        /** The visual settings stored by the host. These values are provided to the visual upon its initialization. */
-        settings?: VisualSettings;
-
         /** Animation options. */
         animation?: AnimationOptions;
 
@@ -253,15 +260,15 @@ module powerbi {
     export interface VisualUpdateOptions {
         viewport: IViewport;
         dataViews: DataView[];
-        duration: number;
+        suppressAnimations?: boolean;
         viewMode?: ViewMode;
     }
 
     export interface VisualDataChangedOptions {
         dataViews: DataView[];
 
-        /** Optional duration of animation transition. */
-        duration?: number;
+        /** Optionally prevent animation transitions */
+        suppressAnimations?: boolean;
 
         /** Indicates what type of update has been performed on the data.
         The default operation kind is Create.*/
@@ -275,13 +282,6 @@ module powerbi {
 
     export interface EnumerateVisualObjectInstancesOptions {
         objectName: string;
-    }
-
-    // TODO: Deprecate this interface.
-    export interface VisualSettings {
-        // TODO: Revisit how this property is set and used.  Perhaps this should be an init option rather than a setting (which implies persistence).
-        DisplayUnitSystemType?: DisplayUnitSystemType;
-        version?: number;
     }
 
     export interface CustomSortEventArgs {
@@ -330,7 +330,7 @@ module powerbi {
         onSelect(args: SelectEventArgs): void;  // TODO: Revisit onSelect vs. onSelectObject.
 
         /** Notifies of a visual object being selected. */
-        onSelectObject? (args: SelectObjectEventArgs): void;  // TODO: make this mandatory, not optional.
+        onSelectObject?(args: SelectObjectEventArgs): void;  // TODO: make this mandatory, not optional.
 
         /** Notifies that properties of the IVisual have changed. */
         persistProperties(changes: VisualObjectInstance[]): void;
@@ -402,8 +402,25 @@ module powerbi {
         data: VisualDragPayload;
     }
 
+    export interface SelectorForColumn {
+        [queryName: string]: data.DataRepetitionSelector;
+    }
+
+    export interface SelectorsByColumn {
+        /** Data-bound repetition selection. */
+        dataMap?: SelectorForColumn;
+
+        /** Metadata-bound repetition selection.  Refers to a DataViewMetadataColumn queryName. */
+        metadata?: string;
+
+        /** User-defined repetition selection. */
+        id?: string;
+    }
+
+    // TODO: Consolidate these two into one object and add a method to transform SelectorsByColumn[] into Selector[] for components that need that structure
     export interface SelectEventArgs {
         data: Selector[];
+        data2?: SelectorsByColumn[];
     }
 
     export interface SelectObjectEventArgs {
@@ -425,8 +442,9 @@ module powerbi {
         /** The selector that identifies this object. */
         selector: Selector;
 
-        // TODO: Make validValues property-specific.  E.g., type could be: { [propertyName: string]: string[] } instead.
         /** Defines the constrained set of valid values for a property. */
-        validValues?: string[];  
+        validValues?: {
+            [propertyName: string]: string[];
+        };
     }
 }

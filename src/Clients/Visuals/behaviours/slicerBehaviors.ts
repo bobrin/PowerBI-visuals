@@ -24,6 +24,8 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="../_references.ts"/>
+
 module powerbi.visuals {
     export interface SlicerBehaviorOptions {
         datapoints: SlicerDataPoint[];
@@ -31,39 +33,64 @@ module powerbi.visuals {
         slicerItemLabels: D3.Selection;
         slicerItemInputs: D3.Selection;
         slicerClear: D3.Selection;
+        isInvertedSelectionMode: boolean;
     }
 
     export class SlicerWebBehavior {
-        public select(selectionLabels: D3.Selection) {
+        public updateLabels(selectionLabels: D3.Selection, slicerSettings:SlicerSettings) {
             selectionLabels.style({
                 'color': (d: SlicerDataPoint) => {
                     if (d.selected)
-                        return Slicer.DefaultStyleProperties.slicerText.selectionColor;
+                        return slicerSettings.slicerText.selectionColor;
                     else
-                        return Slicer.DefaultStyleProperties.slicerText.color;
+                        return slicerSettings.slicerText.color;
                 }
             });
         }
 
-        public mouseInteractions(selectionLabels: D3.Selection) {
+        public updateItemsInputOnSelectAll(slicerItemInputs: D3.Selection, dataPoint: SlicerDataPoint): void {
+            if (dataPoint == null)
+                return;
+
+            slicerItemInputs.selectAll('input').each(function (d: SlicerDataPoint) {
+                if (d.value === dataPoint.value) {
+                    return;
+                }
+                else {
+                    var input = d3.select(this);
+                    input.property({ 'checked': (d: SlicerDataPoint) => d.selected });
+                }
+            });
+        }
+
+        public updateSelectAll(slicerItemInputs: D3.Selection, isInvertedSelectionMode: boolean): void {
+            slicerItemInputs.select('input').each(function (d: SlicerDataPoint) {
+                if (d.isSelectAllDataPoint) {
+                    var input = d3.select(this);
+                    input.classed('partiallySelected', isInvertedSelectionMode);
+                }
+            });
+        }
+
+        public mouseInteractions(selectionLabels: D3.Selection, slicerSettings: SlicerSettings) {
             selectionLabels.style({
                 'color': (d: SlicerDataPoint) => {
                     if (d.mouseOver)
-                        return Slicer.DefaultStyleProperties.slicerText.hoverColor;
+                        return slicerSettings.slicerText.hoverColor;
 
                     if (d.mouseOut) {
                         if (d.selected)
-                            return Slicer.DefaultStyleProperties.slicerText.selectionColor;
+                            return slicerSettings.slicerText.selectionColor;
                         else
-                            return Slicer.DefaultStyleProperties.slicerText.color;
+                            return slicerSettings.slicerText.color;
                     }
                 }
             });
         }
 
-        public clearSlicers(selectionLabels: D3.Selection, slicerItemInputs: D3.Selection) {
+        public clearSlicers(selectionLabels: D3.Selection, slicerItemInputs: D3.Selection): void {
             slicerItemInputs.selectAll('input').property('checked', false);
-            selectionLabels.style('color', Slicer.DefaultStyleProperties.slicerText.color);
+            selectionLabels.style('color', Slicer.DefaultStyleProperties().slicerText.color);
         }
     }
 }  

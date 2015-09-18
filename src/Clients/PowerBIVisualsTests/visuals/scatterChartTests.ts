@@ -24,18 +24,20 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="../_references.ts"/>
+
 module powerbitests {
     import ScatterChart = powerbi.visuals.ScatterChart;
     import ArrayExtensions = jsCommon.ArrayExtensions;
-    import DataShapeUtility = powerbi.data.dsr.DataShapeUtility;
     import DataViewPivotCategorical = powerbi.data.DataViewPivotCategorical;
     import DataViewTransform = powerbi.data.DataViewTransform;
-    import SemanticType = powerbi.data.SemanticType;
-    import DataShapeResult = powerbi.data.dsr.DataShapeResult;
     import ColorUtility = utils.ColorUtility;
+    import ValueType = powerbi.ValueType;
+    import PrimitiveType = powerbi.PrimitiveType;
 
     import AxisType = powerbi.axisType;
-    var DefaultWaitForRender = 10;
+
+    powerbitests.mocks.setLocale();
 
     var axisLabelVisibleMinHeight: number = powerbi.visuals.visualPluginFactory.MobileVisualPluginService.MinHeightAxesVisible;
     var axisLabelVisibleGreaterThanMinHeight: number = axisLabelVisibleMinHeight + 1;
@@ -48,10 +50,12 @@ module powerbitests {
     var legendVisibleSmallerThanMinHeight: number = legendVisibleMinHeight - 1;
     var legendVisibleGreaterThanMinHeightString: string = legendVisibleGreaterThanMinHeight.toString();
     var legendVisibleSmallerThanMinHeightString: string = legendVisibleSmallerThanMinHeight.toString();
+
+    var labelColor = powerbi.visuals.dataLabelUtils.defaultLabelColor;
     
     describe("ScatterChart", () => {
-        var categoryColumn: powerbi.DataViewMetadataColumn = { displayName: 'year', type: DataShapeUtility.describeDataType(SemanticType.String) };
-        var measureColumn: powerbi.DataViewMetadataColumn = { displayName: 'sales', isMeasure: true, type: DataShapeUtility.describeDataType(SemanticType.Integer) };
+        var categoryColumn: powerbi.DataViewMetadataColumn = { displayName: 'year', type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) };
+        var measureColumn: powerbi.DataViewMetadataColumn = { displayName: 'sales', isMeasure: true, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) };
 
         it('ScatterChart registered capabilities', () => {
             expect(powerbi.visuals.visualPluginFactory.create().getPlugin('scatterChart').capabilities).toBe(powerbi.visuals.scatterChartCapabilities);
@@ -128,26 +132,20 @@ module powerbitests {
         var v: powerbi.IVisual, element: JQuery;
         var dataViewMetadataFourColumn: powerbi.DataViewMetadata = {
             columns: [
-                { displayName: 'col1', roles: { "Category": true }, type: DataShapeUtility.describeDataType(SemanticType.String) },
-                { displayName: 'col2', isMeasure: true, roles: { "X": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                { displayName: 'col3', isMeasure: true, roles: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                { displayName: 'col4', isMeasure: true, roles: { "Size": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) }
+                { displayName: 'col1', queryName: 'testQuery', roles: { "Category": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                { displayName: 'col2', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                { displayName: 'col3', isMeasure: true, roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                { displayName: 'col4', isMeasure: true, roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
             ]
         };
 
         var dataViewMetadata: powerbi.DataViewMetadata = {
             columns: [
-                { displayName: 'col1', type: DataShapeUtility.describeDataType(SemanticType.String) },
-                { displayName: 'col2', isMeasure: true, type: DataShapeUtility.describeDataType(SemanticType.Integer) }],
+                { displayName: 'col1', queryName: 'testQuery', type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                { displayName: 'col2', isMeasure: true, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }],
         };
 
-        var hostServices: IVisualHostServices;
-        beforeEach(() => {
-            if (interactiveChart)
-                powerbitests.helpers.suppressDebugAssertFailure();
-
-            powerbitests.mocks.setLocale(powerbi.common.createLocalizationService());
-        });
+        var hostServices: powerbi.IVisualHostServices;
 
         beforeEach(() => {
             hostServices = powerbitests.mocks.createVisualHostServices();
@@ -279,7 +277,6 @@ module powerbitests {
             });
             setTimeout(() => {
                 expect($('.scatterChart .axisGraphicsContext .x.axis .tick').length).toBeGreaterThan(0);
-                expect($('.scatterChart .axisGraphicsContext .y.axis .tick').length).toBeGreaterThan(0);
                 expect($('.scatterChart .axisGraphicsContext .x.axis .tick').find('text').first().text()).toBe('480K');
                 done();
             }, DefaultWaitForRender);
@@ -288,7 +285,7 @@ module powerbitests {
         it('scatter chart two measure dom validation', (done) => {
             var metadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'col1' },
+                    { displayName: 'col1', queryName: 'testQuery' },
                     { displayName: 'col2', isMeasure: true },
                     { displayName: 'col3', isMeasure: true, objects: { general: { formatString: '0%' } } }
                 ]
@@ -335,7 +332,7 @@ module powerbitests {
         it('scatter chart series dom validation', (done) => {
             var metadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'col1', roles: { 'Series': true } },
+                    { displayName: 'col1', queryName: 'testQuery', roles: { 'Series': true } },
                     { displayName: 'col2', isMeasure: true },
                     { displayName: 'col3', isMeasure: true, objects: { general: { formatString: '0%' } } },
                     { displayName: 'col4', isMeasure: true },
@@ -384,7 +381,7 @@ module powerbitests {
         it('scatter chart measure and size dom validation', (done) => {
             var metadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'col1' },
+                    { displayName: 'col1', queryName: 'testQuery' },
                     { displayName: 'col2', isMeasure: true },
                     { displayName: 'col3', isMeasure: true },
                     { displayName: 'col4', isMeasure: true }
@@ -444,21 +441,26 @@ module powerbitests {
                     metadata: dataViewMetadata,
                     categorical: {
                         categories: [{
-                            source: dataViewMetadata.columns[0],
+                            source: dataViewMetadataFourColumn.columns[0],
                             values: ['a', 'b', 'c', 'd', 'e'],
                             identity: categoryIdentities,
                         }],
                         values: DataViewTransform.createValueColumns([{
-                            source: dataViewMetadata.columns[1],
+                            source: dataViewMetadataFourColumn.columns[1],
                             values: [50000, 49500, 49000, 48000, 50000],
                             subtotal: 246500
+                        },{
+                            source: dataViewMetadataFourColumn.columns[2],
+                            values: [200, 400, 600, 800, 1000]
+                        }, {
+                            source: dataViewMetadataFourColumn.columns[3],
+                            values: [1, 2, 3, 4, 5]
                         }])
                     }
                 }]
             });
             setTimeout(() => {
                 expect($('.scatterChart .axisGraphicsContext .x.axis .tick').length).toBeGreaterThan(0);
-                expect($('.scatterChart .axisGraphicsContext .y.axis .tick').length).toBeGreaterThan(0);
                 expect($('.scatterChart .axisGraphicsContext .x.axis.showLinesOnAxis').length).toBe(1);
                 expect($('.scatterChart .axisGraphicsContext .y.axis.showLinesOnAxis').length).toBe(2);
                 done();
@@ -468,10 +470,10 @@ module powerbitests {
         it('scatter chart single category value dom validation', (done) => {
             var metadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'col1', type: DataShapeUtility.describeDataType(SemanticType.String) },
-                    { displayName: 'col2', isMeasure: true, roles: { "X": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'col3', isMeasure: true, roles: { "Size": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'col4', isMeasure: true, roles: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) }
+                    { displayName: 'col1', type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                    { displayName: 'col2', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'col3', isMeasure: true, roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'col4', isMeasure: true, roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
                 ]
             };
             v.onDataChanged({
@@ -516,9 +518,9 @@ module powerbitests {
         it('scatter chart no category dom validation', (done) => {
             var metadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'col2', isMeasure: true, roles: { "X": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'col3', isMeasure: true, roles: { "Size": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'col4', isMeasure: true, roles: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) }
+                    { displayName: 'col2', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'col3', isMeasure: true, roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'col4', isMeasure: true, roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
                 ]
             };
             v.onDataChanged({
@@ -671,8 +673,8 @@ module powerbitests {
             setTimeout(() => {
                 expect($('.scatterChart .axisGraphicsContext .x.axis .tick').length).toBeGreaterThan(0);
                 expect($('.scatterChart .axisGraphicsContext .y.axis .tick').length).toBeGreaterThan(0);
-                expect($('.scatterChart .axisGraphicsContext .x.axis .tick').find('text').last().text()).toBe('3');
-                expect($('.scatterChart .axisGraphicsContext .y.axis .tick').find('text').last().text()).toBe('3');
+                expect($('.scatterChart .axisGraphicsContext .x.axis .tick').find('text').last().text()).toBe('2.50');
+                expect($('.scatterChart .axisGraphicsContext .y.axis .tick').find('text').last().text()).toBe('2.50');
                 done();
             }, DefaultWaitForRender);
         });
@@ -758,9 +760,9 @@ module powerbitests {
             var metadata: powerbi.DataViewMetadata = {
                 columns: [
                     { displayName: 'col1' },
-                    { displayName: 'X-Axis', isMeasure: true, roles: { "X": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'Size', isMeasure: true, roles: { "Size": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'Y-Axis', isMeasure: true, roles: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) }
+                    { displayName: 'X-Axis', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'Size', isMeasure: true, roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'Y-Axis', isMeasure: true, roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
                 ]
             };
             var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
@@ -807,7 +809,7 @@ module powerbitests {
             v.onResizing({
                 height: 101,
                 width: 226
-            }, 0);
+            });
             var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
                 mocks.dataViewScopeIdentity('a'),
                 mocks.dataViewScopeIdentity('b'),
@@ -888,7 +890,7 @@ module powerbitests {
             v.onResizing({
                 height: 500,
                 width: 500
-            }, 0);
+            });
 
             var r0, r1, r2;
             if (interactiveChart) {
@@ -952,7 +954,7 @@ module powerbitests {
             v.onResizing({
                 height: 300,
                 width: 300
-            }, 0);
+            });
 
             var r0, r1, r2;
             if (interactiveChart) {
@@ -1017,7 +1019,7 @@ module powerbitests {
             v.onResizing({
                 height: 100,
                 width: 200
-            }, 0);
+            });
 
             var r0, r1, r2;
             if (interactiveChart) {
@@ -1041,6 +1043,58 @@ module powerbitests {
                 done();
             }, DefaultWaitForRender);
         });
+
+        it('scatter chart zero axis line is darkened',(done) => {
+            var metadata: powerbi.DataViewMetadata = {
+                columns: [
+                    { displayName: 'col1' },
+                    { displayName: 'X-Axis', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'Size', isMeasure: true, roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'Y-Axis', isMeasure: true, roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
+                ]
+            };
+            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+                mocks.dataViewScopeIdentity('a'),
+                mocks.dataViewScopeIdentity('b'),
+                mocks.dataViewScopeIdentity('c'),
+                mocks.dataViewScopeIdentity('d'),
+                mocks.dataViewScopeIdentity('e'),
+            ];
+            v.onDataChanged({
+                dataViews: [{
+                    metadata: metadata,
+                    categorical: {
+                        categories: [{
+                            source: metadata.columns[0],
+                            values: ['a', 'b', 'c', 'd', 'e'],
+                            identity: categoryIdentities,
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: metadata.columns[1],
+                                values: [110, 120, -130, 140, 150]
+                            }, {
+                                source: metadata.columns[2],
+                                values: [210, -220, -230, 240, -250]
+                            }, {
+                                source: metadata.columns[3],
+                                values: [-310, 320, 330, -340, 350]
+                            }])
+                    }
+                }]
+            });
+
+            setTimeout(() => {
+                var zeroTicks = $('g.tick:has(line.zero-line)');
+                expect($('.brush')).not.toBeInDOM();
+                expect(zeroTicks.length).toBe(2);
+                zeroTicks.each(function (i, item) {
+                    expect(d3.select(item).datum() === 0).toBe(true);
+                });
+
+                done();
+            }, DefaultWaitForRender);
+        });        
     }
 
     describe("scatterChart DOM validation", () => scatterChartDomValidation(false));
@@ -1054,18 +1108,19 @@ module powerbitests {
             columns: [
                 {
                     displayName: 'col1',
-                    type: DataShapeUtility.describeDataType(SemanticType.String)
+                    type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text),
+                    queryName: 'col1'
                 },
                 {
                     displayName: 'col2',
                     isMeasure: true,
-                    type: DataShapeUtility.describeDataType(SemanticType.Number),
+                    type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double),
                     format: '0.000'
                 },
                 {
                     displayName: 'col3',
                     isMeasure: false,
-                    type: DataShapeUtility.describeDataType(SemanticType.DateTime),
+                    type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.DateTime),
                     format: 'd'
                 }],
         };
@@ -1077,8 +1132,15 @@ module powerbitests {
         var dataViewMetadataWithLabelsOffObject = powerbi.Prototype.inherit(dataViewMetadata);
         dataViewMetadataWithLabelsOffObject.objects = { categoryLabels: { show: false } };
 
+        var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+            mocks.dataViewScopeIdentity('a'),
+            mocks.dataViewScopeIdentity('b'),
+            mocks.dataViewScopeIdentity('c'),
+            mocks.dataViewScopeIdentity('d'),
+            mocks.dataViewScopeIdentity('e'),
+        ];
+        
         beforeEach(() => {
-            powerbitests.mocks.setLocale(powerbi.common.createLocalizationService());
             element = powerbitests.helpers.testDom('500', '500');
             v = powerbi.visuals.visualPluginFactory.create().getPlugin('scatterChart').create();
             v.init({
@@ -1101,7 +1163,8 @@ module powerbitests {
                     categorical: {
                         categories: [{
                             source: dataViewMetadataWithLabelsOnObject.columns[0],
-                            values: ['a', 'b', 'c', 'd', 'e']
+                            values: ['a', 'b', 'c', 'd', 'e'],
+                            identity: categoryIdentities,
                         }],
                         values: DataViewTransform.createValueColumns([{
                             source: dataViewMetadataWithLabelsOnObject.columns[1],
@@ -1125,7 +1188,8 @@ module powerbitests {
                     categorical: {
                         categories: [{
                             source: dataViewMetadataWithLabelsOnObject.columns[0],
-                            values: ['a', 'b', 'c', 'd', 'e']
+                            values: ['a', 'b', 'c', 'd', 'e'],
+                            identity: categoryIdentities,
                         }],
                         values: DataViewTransform.createValueColumns([{
                             source: dataViewMetadataWithLabelsOnObject.columns[1],
@@ -1136,9 +1200,8 @@ module powerbitests {
                 }]
             });
             setTimeout(() => {
-                var dotFill = $('.scatterChart .axisGraphicsContext .mainGraphicsContext .dot').first().css('fill');
                 var labelFill = $('.scatterChart .axisGraphicsContext .mainGraphicsContext .data-labels').first().css('fill');
-                expect(ColorUtility.convertFromRGBorHexToHex(labelFill).toUpperCase()).toBe(ColorUtility.convertFromRGBorHexToHex(dotFill).toUpperCase());
+                expect(ColorUtility.convertFromRGBorHexToHex(labelFill)).toBe(labelColor);
                 done();
             }, DefaultWaitForRender);
         });
@@ -1156,7 +1219,8 @@ module powerbitests {
                     categorical: {
                         categories: [{
                             source: dataViewMetadataWithLabelsFillObject.columns[0],
-                            values: ['a', 'b', 'c', 'd', 'e']
+                            values: ['a', 'b', 'c', 'd', 'e'],
+                            identity: categoryIdentities,
                         }],
                         values: DataViewTransform.createValueColumns([{
                             source: dataViewMetadataWithLabelsFillObject.columns[1],
@@ -1180,7 +1244,8 @@ module powerbitests {
                     categorical: {
                         categories: [{
                             source: dataViewMetadata.columns[0],
-                            values: ['a', 'b', 'c', 'd', 'e']
+                            values: ['a', 'b', 'c', 'd', 'e'],
+                            identity: categoryIdentities,
                         }],
                         values: DataViewTransform.createValueColumns([{
                             source: dataViewMetadataWithLabelsOffObject.columns[1],
@@ -1200,16 +1265,16 @@ module powerbitests {
             // Category and series are the same field
             var metadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'series', isMeasure: false, queryName: 'series', roles: { "Category": true, "Series": true }, type: DataShapeUtility.describeDataType(SemanticType.String) },
-                    { displayName: 'value1', groupName: 'a', isMeasure: true, queryName: "x", roles: { "X": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value2', groupName: 'a', isMeasure: true, queryName: "size", roles: { "Size": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value3', groupName: 'a', isMeasure: true, queryName: "y", roles: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value1', groupName: 'b', isMeasure: true, queryName: "x", roles: { "X": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value2', groupName: 'b', isMeasure: true, queryName: "size", roles: { "Size": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value3', groupName: 'b', isMeasure: true, queryName: "y", roles: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value1', groupName: 'c', isMeasure: true, queryName: "x", roles: { "X": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value2', groupName: 'c', isMeasure: true, queryName: "size", roles: { "Size": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value3', groupName: 'c', isMeasure: true, queryName: "y", roles: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
+                    { displayName: 'series', isMeasure: false, queryName: 'series', roles: { "Category": true, "Series": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                    { displayName: 'value1', groupName: 'a', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'a', isMeasure: true, queryName: "size", roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value3', groupName: 'a', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value1', groupName: 'b', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'b', isMeasure: true, queryName: "size", roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value3', groupName: 'b', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value1', groupName: 'c', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'c', isMeasure: true, queryName: "size", roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value3', groupName: 'c', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
                 ],
                 objects: {
                     categoryLabels: { show: true },
@@ -1285,10 +1350,100 @@ module powerbitests {
                 expect(dots.length).toBe(labels.length);
 
                 for (var i = 0; i < dots.length; i++) {
-                    var dotFill = dots.eq(i).css('fill');
                     var labelFill = labels.eq(i).css('fill');
-                    expect(ColorUtility.convertFromRGBorHexToHex(dotFill)).toBe(ColorUtility.convertFromRGBorHexToHex(labelFill));
+                    expect(labelColor).toBe(ColorUtility.convertFromRGBorHexToHex(labelFill));
                 }
+                done();
+            }, DefaultWaitForRender);
+        });
+
+        it('scatter chart interactiveLenged of data labels multi-series without categories should not be null',(done) => {
+            // Category and series are the same field
+            var metadata: powerbi.DataViewMetadata = {
+                columns: [
+                    { displayName: 'series', isMeasure: false, queryName: 'series', roles: { "Category": true, "Series": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                    { displayName: 'value1', groupName: 'a', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'a', isMeasure: true, queryName: "size", roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value3', groupName: 'a', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value1', groupName: 'b', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'b', isMeasure: true, queryName: "size", roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value3', groupName: 'b', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value1', groupName: 'c', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'c', isMeasure: true, queryName: "size", roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value3', groupName: 'c', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                ],
+                objects: {
+                    categoryLabels: { show: true },
+                    // Force axis ranges to ensure data labels are visible
+                    valueAxis: { start: 0, end: 100 },
+                    categoryAxis: { start: -100, end: 300 },
+                },
+            };
+            var seriesValues = ['a', 'b', 'c'];
+            var seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
+            var seriesIdentityField = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'series' });
+
+            var valueColumns = DataViewTransform.createValueColumns([
+                {
+                    source: metadata.columns[1],
+                    values: [0, null, null],
+                    identity: seriesIdentities[0],
+                }, {
+                    source: metadata.columns[2],
+                    values: [1, null, null],
+                    identity: seriesIdentities[0],
+                }, {
+                    source: metadata.columns[3],
+                    values: [10, null, null],
+                    identity: seriesIdentities[0],
+                }, {
+                    source: metadata.columns[4],
+                    values: [null, 100, null],
+                    identity: seriesIdentities[1],
+                }, {
+                    source: metadata.columns[5],
+                    values: [null, 2, null],
+                    identity: seriesIdentities[1],
+                }, {
+                    source: metadata.columns[6],
+                    values: [null, 20, null],
+                    identity: seriesIdentities[1],
+                }, {
+                    source: metadata.columns[7],
+                    values: [null, null, 200],
+                    identity: seriesIdentities[2],
+                }, {
+                    source: metadata.columns[8],
+                    values: [null, null, 3],
+                    identity: seriesIdentities[2],
+                }, {
+                    source: metadata.columns[9],
+                    values: [null, null, 30],
+                    identity: seriesIdentities[2],
+                }],
+                [seriesIdentityField]);
+            valueColumns.source = metadata.columns[0];
+
+            v.onDataChanged({
+                dataViews: [{
+                    metadata: metadata,
+                    categorical: {
+                        values: valueColumns
+                    }
+                }]
+            });
+
+            setTimeout(() => {
+                var interactiveLenged = $('.scatterChart .interactive-legend');
+                var title = interactiveLenged.children('.title').children('span').last().text();
+
+                if (interactiveChart) {
+                    expect(title).toBe('a');
+                }
+                else {
+                    expect(interactiveLenged.length).toBe(0);
+                }
+
                 done();
             }, DefaultWaitForRender);
         });
@@ -1300,12 +1455,13 @@ module powerbitests {
                     categorical: {
                         categories: [{
                             source: dataViewMetadata.columns[0],
-                            values: ['a', 'b', 'c', 'd', 'e']
+                            values: ['a', 'b', 'c', 'd', 'e'],
+                            identity: categoryIdentities,
                         }],
                         values: DataViewTransform.createValueColumns([{
                             source: dataViewMetadata.columns[1],
                             values: [null, 10, null, 15, null],
-                            subtotal: 20
+                            subtotal: 20,
                         }])
                     }
                 }]
@@ -1323,7 +1479,8 @@ module powerbitests {
                     categorical: {
                         categories: [{
                             source: dataViewMetadata.columns[0],
-                            values: ['a', 'b', 'c', 'd', 'e']
+                            values: ['a', 'b', 'c', 'd', 'e'],
+                            identity: categoryIdentities,
                         }],
                         values: DataViewTransform.createValueColumns([{
                             source: dataViewMetadataWithLabelsOnObject.columns[1],
@@ -1343,7 +1500,8 @@ module powerbitests {
                         categorical: {
                             categories: [{
                                 source: dataViewMetadata.columns[0],
-                                values: ['q', 'w', 'r', 't']
+                                values: ['q', 'w', 'r', 't'],
+                                identity: categoryIdentities,
                             }],
                             values: DataViewTransform.createValueColumns([{
                                 source: dataViewMetadataWithLabelsOnObject.columns[1],
@@ -1511,16 +1669,16 @@ module powerbitests {
             // Category and series are the same field
             var metadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'series', isMeasure: false, queryName: 'series', roles: { "Category": true, "Series": true }, type: DataShapeUtility.describeDataType(SemanticType.String) },
-                    { displayName: 'value1', groupName: 'a', isMeasure: true, queryName: "x", roles: { "X": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value2', groupName: 'a', isMeasure: true, queryName: "size", roles: { "Size": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value3', groupName: 'a', isMeasure: true, queryName: "y", roles: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value1', groupName: 'b', isMeasure: true, queryName: "x", roles: { "X": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value2', groupName: 'b', isMeasure: true, queryName: "size", roles: { "Size": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value3', groupName: 'b', isMeasure: true, queryName: "y", roles: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value1', groupName: 'c', isMeasure: true, queryName: "x", roles: { "X": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value2', groupName: 'c', isMeasure: true, queryName: "size", roles: { "Size": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value3', groupName: 'c', isMeasure: true, queryName: "y", roles: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
+                    { displayName: 'series', isMeasure: false, queryName: 'series', roles: { "Category": true, "Series": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                    { displayName: 'value1', groupName: 'a', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'a', isMeasure: true, queryName: "size", roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value3', groupName: 'a', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value1', groupName: 'b', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'b', isMeasure: true, queryName: "size", roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value3', groupName: 'b', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value1', groupName: 'c', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'c', isMeasure: true, queryName: "size", roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value3', groupName: 'c', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
                 ],
                 objects: { categoryLabels: { show: true } },
             };
@@ -1606,7 +1764,7 @@ module powerbitests {
             expect(dataPoints[2].tooltipInfo).toEqual([{ displayName: 'series', value: 'c' }, { displayName: 'value1', value: '200' }, { displayName: 'value3', value: '30' }, { displayName: 'value2', value: '3' }]);
         });
 
-        it('scatter chart null legend', () => {
+        it('scatter chart null legend',() => {
             var viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
@@ -1615,16 +1773,16 @@ module powerbitests {
             // Category and series are the same field
             var metadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'series', isMeasure: false, queryName: 'series', roles: { "Category": true, "Series": true }, type: DataShapeUtility.describeDataType(SemanticType.String) },
-                    { displayName: 'value1', groupName: null, isMeasure: true, queryName: "x", roles: { "X": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value2', groupName: null, isMeasure: true, queryName: "size", roles: { "Size": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value3', groupName: null, isMeasure: true, queryName: "y", roles: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value1', groupName: 'b', isMeasure: true, queryName: "x", roles: { "X": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value2', groupName: 'b', isMeasure: true, queryName: "size", roles: { "Size": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value3', groupName: 'b', isMeasure: true, queryName: "y", roles: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value1', groupName: 'c', isMeasure: true, queryName: "x", roles: { "X": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value2', groupName: 'c', isMeasure: true, queryName: "size", roles: { "Size": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value3', groupName: 'c', isMeasure: true, queryName: "y", roles: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
+                    { displayName: 'series', isMeasure: false, queryName: 'series', roles: { "Category": true, "Series": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                    { displayName: 'value1', groupName: null, isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: null, isMeasure: true, queryName: "size", roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value3', groupName: null, isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value1', groupName: 'b', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'b', isMeasure: true, queryName: "size", roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value3', groupName: 'b', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value1', groupName: 'c', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'c', isMeasure: true, queryName: "size", roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value3', groupName: 'c', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
                 ],
                 objects: { categoryLabels: { show: true } },
             };
@@ -1705,6 +1863,88 @@ module powerbitests {
             expect(dataPoints[2].tooltipInfo).toEqual([{ displayName: 'series', value: 'c' }, { displayName: 'value1', value: '200' }, { displayName: 'value3', value: '30' }, { displayName: 'value2', value: '3' }]);
         });
 
+        it('scatter chart empty categories should return not-null category',() => {
+            var viewport: powerbi.IViewport = {
+                height: 500,
+                width: 500
+            };
+
+            var metadata: powerbi.DataViewMetadata = {
+                columns: [
+                    { displayName: 'series', isMeasure: false, queryName: 'series', roles: { "Category": true, "Series": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                    { displayName: 'value1', groupName: 'a', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'a', isMeasure: true, queryName: "size", roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value3', groupName: 'a', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value1', groupName: 'b', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'b', isMeasure: true, queryName: "size", roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value3', groupName: 'b', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value1', groupName: 'c', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'c', isMeasure: true, queryName: "size", roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value3', groupName: 'c', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                ],
+                objects: { categoryLabels: { show: true } },
+            };
+            var seriesValues = [null, 'b', 'c'];
+            var seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
+            var seriesIdentityField = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'series' });
+
+            var valueColumns = DataViewTransform.createValueColumns([
+                {
+                    source: metadata.columns[1],
+                    values: [0, null, null],
+                    identity: seriesIdentities[0],
+                }, {
+                    source: metadata.columns[2],
+                    values: [1, null, null],
+                    identity: seriesIdentities[0],
+                }, {
+                    source: metadata.columns[3],
+                    values: [10, null, null],
+                    identity: seriesIdentities[0],
+                }, {
+                    source: metadata.columns[4],
+                    values: [null, 100, null],
+                    identity: seriesIdentities[1],
+                }, {
+                    source: metadata.columns[5],
+                    values: [null, 2, null],
+                    identity: seriesIdentities[1],
+                }, {
+                    source: metadata.columns[6],
+                    values: [null, 20, null],
+                    identity: seriesIdentities[1],
+                }, {
+                    source: metadata.columns[7],
+                    values: [null, null, 200],
+                    identity: seriesIdentities[2],
+                }, {
+                    source: metadata.columns[8],
+                    values: [null, null, 3],
+                    identity: seriesIdentities[2],
+                }, {
+                    source: metadata.columns[9],
+                    values: [null, null, 30],
+                    identity: seriesIdentities[2],
+                }],
+                [seriesIdentityField]);
+            valueColumns.source = metadata.columns[0];
+
+            var groupedValues = valueColumns.grouped();
+            groupedValues[0].objects = { dataPoint: { fill: { solid: { color: '#41BEE1' } } } };
+            valueColumns.grouped = () => groupedValues;
+
+            var dataView: powerbi.DataView = {
+                metadata: metadata,
+                categorical: {
+                    values: valueColumns,
+                }
+            };
+
+            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            var scatterChartData = ScatterChart.converter(dataView, viewport, colors);
+            expect(scatterChartData.dataPoints[0].category).not.toBe(null);
+        });
+
         it('scatter chart dataView without role validation', () => {
             var viewport: powerbi.IViewport = {
                 height: 500,
@@ -1714,16 +1954,16 @@ module powerbitests {
             // Category and series are the same field
             var metadata: powerbi.DataViewMetadata = {
                 columns: [
-                    { displayName: 'series', isMeasure: false, queryName: 'series', type: DataShapeUtility.describeDataType(SemanticType.String) },
-                    { displayName: 'value1', groupName: 'a', isMeasure: true, queryName: "x", type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value2', groupName: 'a', isMeasure: true, queryName: "y", type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value3', groupName: 'a', isMeasure: true, queryName: "size", type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value1', groupName: 'b', isMeasure: true, queryName: "x", type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value2', groupName: 'b', isMeasure: true, queryName: "y", type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value3', groupName: 'b', isMeasure: true, queryName: "size", type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value1', groupName: 'c', isMeasure: true, queryName: "x", type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value2', groupName: 'c', isMeasure: true, queryName: "y", type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                    { displayName: 'value3', groupName: 'c', isMeasure: true, queryName: "size", type: DataShapeUtility.describeDataType(SemanticType.Number) },
+                    { displayName: 'series', isMeasure: false, queryName: 'series', type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                    { displayName: 'value1', groupName: 'a', isMeasure: true, queryName: "x", type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'a', isMeasure: true, queryName: "y", type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value3', groupName: 'a', isMeasure: true, queryName: "size", type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value1', groupName: 'b', isMeasure: true, queryName: "x", type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'b', isMeasure: true, queryName: "y", type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value3', groupName: 'b', isMeasure: true, queryName: "size", type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value1', groupName: 'c', isMeasure: true, queryName: "x", type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'c', isMeasure: true, queryName: "y", type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value3', groupName: 'c', isMeasure: true, queryName: "size", type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
                 ],
                 objects: { categoryLabels: { show: true } },
             };
@@ -1963,43 +2203,104 @@ module powerbitests {
             expect(dataPoints[0].fill).toBeDefined();
         });
 
+        function getDataViewMultiSeries(firstGroupName: string = 'Canada', secondGroupName: string = 'United States'): powerbi.DataView {
+            var dataViewMetadata: powerbi.DataViewMetadata = {
+                columns: [
+                    {
+                        displayName: '',
+                        format: 'yyyy',
+                        type: ValueType.fromDescriptor({ dateTime: true })
+                    }, {
+                        displayName: ''
+                    }, {
+                        displayName: '',
+                        format: '#,0.00',
+                        isMeasure: true,
+                        groupName: firstGroupName,
+                    }, {
+                        displayName: '',
+                        format: '#,0',
+                        isMeasure: true,
+                        groupName: firstGroupName,
+                    }, {
+                        displayName: '',
+                        format: '#,0.00',
+                        isMeasure: true,
+                        groupName: secondGroupName,
+                    }, {
+                        displayName: '',
+                        format: '#,0',
+                        isMeasure: true,
+                        groupName: secondGroupName,
+                    }, {
+                        displayName: '',
+                        format: '#,0.00',
+                        isMeasure: true,
+                    }, {
+                        displayName: '',
+                        format: '#,0',
+                        isMeasure: true,
+                    }
+                ]
+            };
+
+            var colP1Ref = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 't', column: 'p1' });
+            var colP2Ref = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 't', column: 'p2' });
+
+            var seriesValues = [null, firstGroupName, secondGroupName];
+            var seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
+
+            var dataViewValueColumns: powerbi.DataViewValueColumn[] = [
+                {
+                    source: dataViewMetadata.columns[2],
+                    values: [150, 177, 157],
+                    identity: seriesIdentities[1],
+                }, {
+                    source: dataViewMetadata.columns[3],
+                    values: [30, 25, 28],
+                    identity: seriesIdentities[1],
+                }, {
+                    source: dataViewMetadata.columns[4],
+                    values: [100, 149, 144],
+                    identity: seriesIdentities[2],
+                }, {
+                    source: dataViewMetadata.columns[5],
+                    values: [300, 250, 280],
+                    identity: seriesIdentities[2],
+                }
+            ];
+
+            var dataView: powerbi.DataView = {
+                metadata: dataViewMetadata,
+                categorical: {
+                    categories: [{
+                        source: dataViewMetadata.columns[0],
+                        values: [
+                            powerbitests.helpers.parseDateString("2012-01-01T00:00:00"),
+                            powerbitests.helpers.parseDateString("2011-01-01T00:00:00"),
+                            powerbitests.helpers.parseDateString("2010-01-01T00:00:00")
+                        ],
+                        identity: [seriesIdentities[0]],
+                        identityFields: [
+                            colP1Ref
+                        ]
+                    }],
+                    values: DataViewTransform.createValueColumns(dataViewValueColumns, [colP2Ref])
+                },
+            };
+
+            dataView.categorical.values.source = dataViewMetadata.columns[1];
+
+            return dataView;
+        }
+
         it('scatterChart multi-series', () => {
             var viewport: powerbi.IViewport = {
                 height: 500,
                 width: 500
             };
-            var SelectKind = powerbi.data.SelectKind;
-            var dsrResult: DataShapeResult = { "DataShapes": [{ "Id": "DS0", "SecondaryHierarchy": [{ "Id": "DM1", "Instances": [{ "Calculations": [{ "Id": "G1", "Value": "'Canada'" }] }, { "Calculations": [{ "Id": "G1", "Value": "'United States'" }] }] }], "PrimaryHierarchy": [{ "Id": "DM0", "Instances": [{ "Calculations": [{ "Id": "G0", "Value": "datetime'2012-01-01T00:00:00'" }], "Intersections": [{ "Id": "I0", "Calculations": [{ "Id": "M0", "Value": "150D" }, { "Id": "M1", "Value": "30L" }] }, { "Id": "I0", "Calculations": [{ "Id": "M0", "Value": "100D" }, { "Id": "M1", "Value": "300L" }] }] }, { "Calculations": [{ "Id": "G0", "Value": "datetime'2011-01-01T00:00:00'" }], "Intersections": [{ "Id": "I0", "Calculations": [{ "Id": "M0", "Value": "177D" }, { "Id": "M1", "Value": "25L" }] }, { "Id": "I0", "Calculations": [{ "Id": "M0", "Value": "149D" }, { "Id": "M1", "Value": "250L" }] }] }, { "Calculations": [{ "Id": "G0", "Value": "datetime'2010-01-01T00:00:00'" }], "Intersections": [{ "Id": "I0", "Calculations": [{ "Id": "M0", "Value": "157D" }, { "Id": "M1", "Value": "28L" }] }, { "Id": "I0", "Calculations": [{ "Id": "M0", "Value": "144D" }, { "Id": "M1", "Value": "280L" }] }] }] }], "IsComplete": true }] };
-            var propertyRef1: powerbi.data.dsr.ConceptualPropertyReference = { Entity: 't', Property: 'p1' };
-            var propertyRef2: powerbi.data.dsr.ConceptualPropertyReference = { Entity: 't', Property: 'p2' };
-            var dataView = powerbi.data.dsr.readDsr(
-                {
-                    Select: [
-                        { "Kind": SelectKind.Group, "Depth": 0, "Value": "G0", "Format": "yyyy", "Type": 4 },
-                        { "Kind": SelectKind.Measure, "Value": "M0", "Format": "#,0.00" },
-                        { "Kind": SelectKind.Measure, "Value": "M1", "Format": "#,0" },
-                        { "Kind": SelectKind.Group, "SecondaryDepth": 0, "Value": "G1" }],
-                    Expressions: {
-                        Primary: {
-                            Groupings: [{
-                                Keys: [{
-                                    Source: propertyRef1,
-                                    Select: 0,
-                                }]
-                            }]
-                        },
-                        Secondary: {
-                            Groupings: [{
-                                Keys: [{
-                                    Source: propertyRef2,
-                                    Select: 3,
-                                }]
-                            }]
-                        }
-                    }
-                },
-                dsrResult,
-                's').dataView;
+
+            var dataView: powerbi.DataView = getDataViewMultiSeries();
 
             var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
             var scatterChartData = ScatterChart.converter(dataView, viewport, colors).dataPoints;
@@ -2023,45 +2324,17 @@ module powerbitests {
                 height: 500,
                 width: 500
             };
-            var SelectKind = powerbi.data.SelectKind;
-            var dsrResult: DataShapeResult = { "DataShapes": [{ "Id": "DS0", "SecondaryHierarchy": [{ "Id": "DM1", "Instances": [{ "Calculations": [{ "Id": "G1", "Value": "'Canada'" }] }, { "Calculations": [{ "Id": "G1", "Value": "'United States'" }] }] }], "PrimaryHierarchy": [{ "Id": "DM0", "Instances": [{ "Calculations": [{ "Id": "G0", "Value": "datetime'2012-01-01T00:00:00'" }], "Intersections": [{ "Id": "I0", "Calculations": [{ "Id": "M0", "Value": "150D" }, { "Id": "M1", "Value": "30L" }] }, { "Id": "I0", "Calculations": [{ "Id": "M0", "Value": "100D" }, { "Id": "M1", "Value": "300L" }] }] }, { "Calculations": [{ "Id": "G0", "Value": "datetime'2011-01-01T00:00:00'" }], "Intersections": [{ "Id": "I0", "Calculations": [{ "Id": "M0", "Value": "177D" }, { "Id": "M1", "Value": "25L" }] }, { "Id": "I0", "Calculations": [{ "Id": "M0", "Value": "149D" }, { "Id": "M1", "Value": "250L" }] }] }, { "Calculations": [{ "Id": "G0", "Value": "datetime'2010-01-01T00:00:00'" }], "Intersections": [{ "Id": "I0", "Calculations": [{ "Id": "M0", "Value": "157D" }, { "Id": "M1", "Value": "28L" }] }, { "Id": "I0", "Calculations": [{ "Id": "M0", "Value": "144D" }, { "Id": "M1", "Value": "280L" }] }] }] }], "IsComplete": true }] };
-            var propertyRef1: powerbi.data.dsr.ConceptualPropertyReference = { Entity: 't', Property: 'p1' };
-            var propertyRef2: powerbi.data.dsr.ConceptualPropertyReference = { Entity: 't', Property: 'p2' };
-            var dataView = powerbi.data.dsr.readDsr(
-                {
-                    Select: [
-                        { "Kind": SelectKind.Group, "Depth": 0, "Value": "G0", "Type": 4 },
-                        { "Kind": SelectKind.Measure, "Value": "M0", "Format": "#,0.00" },
-                        { "Kind": SelectKind.Measure, "Value": "M1", "Format": "#,0" },
-                        { "Kind": SelectKind.Group, "SecondaryDepth": 0, "Value": "G1" }],
-                    Expressions: {
-                        Primary: {
-                            Groupings: [{
-                                Keys: [{
-                                    Source: propertyRef1,
-                                    Select: 0,
-                                }]
-                            }]
-                        },
-                        Secondary: {
-                            Groupings: [{
-                                Keys: [{
-                                    Source: propertyRef2,
-                                    Select: 3,
-                                }]
-                            }]
-                        }
-                    }
-                },
-                dsrResult,
-                's').dataView;
+
+            var dataView: powerbi.DataView = getDataViewMultiSeries();
 
             var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
             var hexDefaultColorRed = "#FF0000";
+
             dataView.metadata = {
                 columns: null,
                 objects: { dataPoint: { defaultColor: { solid: { color: hexDefaultColorRed } } } }
             };
+
             var scatterChartData = ScatterChart.converter(dataView, viewport, colors, null).dataPoints;
             expect(scatterChartData[0].category).toBe('1/1/2012');
             expect(scatterChartData[0].x).toBe(150);
@@ -2076,38 +2349,8 @@ module powerbitests {
                 height: 500,
                 width: 500
             };
-            var SelectKind = powerbi.data.SelectKind;
-            var dsrResult: DataShapeResult = { "DataShapes": [{ "Id": "DS0", "SecondaryHierarchy": [{ "Id": "DM1", "Instances": [{ "Calculations": [{ "Id": "G1", "Value": "'Canada'" }] }, { "Calculations": [{ "Id": "G1", "Value": "'United States'" }] }] }], "PrimaryHierarchy": [{ "Id": "DM0", "Instances": [{ "Calculations": [{ "Id": "G0", "Value": "2012L" }], "Intersections": [{ "Id": "I0", "Calculations": [{ "Id": "M0", "Value": "150D" }, { "Id": "M1", "Value": "30L" }] }, { "Id": "I0", "Calculations": [{ "Id": "M0", "Value": "100D" }, { "Id": "M1", "Value": "300L" }] }] }, { "Calculations": [{ "Id": "G0", "Value": "2011L" }], "Intersections": [{ "Id": "I0", "Calculations": [{ "Id": "M0", "Value": "177D" }, { "Id": "M1", "Value": "25L" }] }, { "Id": "I0", "Calculations": [{ "Id": "M0", "Value": "149D" }, { "Id": "M1", "Value": "250L" }] }] }, { "Calculations": [{ "Id": "G0", "Value": "2010L" }], "Intersections": [{ "Id": "I0", "Calculations": [{ "Id": "M0", "Value": "157D" }, { "Id": "M1", "Value": "28L" }] }, { "Id": "I0", "Calculations": [{ "Id": "M0", "Value": "144D" }, { "Id": "M1", "Value": "280L" }] }] }] }], "IsComplete": true }] };
-            var propertyRef1: powerbi.data.dsr.ConceptualPropertyReference = { Entity: 't', Property: 'p1' };
-            var propertyRef2: powerbi.data.dsr.ConceptualPropertyReference = { Entity: 't', Property: 'p2' };
-            var dataView = powerbi.data.dsr.readDsr(
-                {
-                    Select: [
-                        { "Kind": SelectKind.Group, "Depth": 0, "Value": "G0", "Type": 4 },
-                        { "Kind": SelectKind.Measure, "Value": "M0", "Format": "#,0.00" },
-                        { "Kind": SelectKind.Measure, "Value": "M1", "Format": "#,0" },
-                        { "Kind": SelectKind.Group, "SecondaryDepth": 0, "Value": "G1" }],
-                    Expressions: {
-                        Primary: {
-                            Groupings: [{
-                                Keys: [{
-                                    Source: propertyRef1,
-                                    Select: 0,
-                                }]
-                            }]
-                        },
-                        Secondary: {
-                            Groupings: [{
-                                Keys: [{
-                                    Source: propertyRef2,
-                                    Select: 3,
-                                }]
-                            }]
-                        }
-                    }
-                },
-                dsrResult,
-                's').dataView;
+
+            var dataView: powerbi.DataView = getDataViewMultiSeries();
 
             var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
             
@@ -2181,43 +2424,154 @@ module powerbitests {
                 height: 500,
                 width: 500
             };
-            var SelectKind = powerbi.data.SelectKind;
-            var dsrResult: DataShapeResult = { "DataShapes": [{ "Id": "Chart2", "Calculations": [{ "Id": "MinSize", "Value": "1L" }, { "Id": "MaxSize", "Value": "404L" }], "SecondaryHierarchy": [{ "Id": "SeriesMember", "Instances": [{ "Group": { "ScopeId": { "ScopeValues": [{ "Value": "'Equipment Failure'", "Key": "2Equipment Failure" }] } }, "Calculations": [{ "Id": "Label2", "Value": "'Equipment Failure'" }] }, { "Group": { "ScopeId": { "ScopeValues": [{ "Value": "'Scheduled Outage'", "Key": "2Scheduled Outage" }] } }, "Calculations": [{ "Id": "Label2", "Value": "'Scheduled Outage'" }] }, { "Group": { "ScopeId": { "ScopeValues": [{ "Value": "'Trees/Vegetation'", "Key": "2Trees/Vegetation" }] } }, "Calculations": [{ "Id": "Label2", "Value": "'Trees/Vegetation'" }] }, { "Group": { "ScopeId": { "ScopeValues": [{ "Value": "'Under Investigation'", "Key": "2Under Investigation" }] } }, "Calculations": [{ "Id": "Label2", "Value": "'Under Investigation'" }] }] }], "PrimaryHierarchy": [{ "Id": "CategoryMember", "Instances": [{ "Group": { "ScopeId": { "ScopeValues": [{ "Value": "'Bellevue, WA'", "Key": "2Bellevue, WA" }] } }, "Calculations": [{ "Id": "Label", "Value": "'Bellevue, WA'" }], "Intersections": [{ "Id": "Cell", "Calculations": [{ "Id": "X", "Value": null }, { "Id": "Y", "Value": null }, { "Id": "Size", "Value": null }] }, { "Id": "Cell", "Calculations": [{ "Id": "X", "Value": null }, { "Id": "Y", "Value": null }, { "Id": "Size", "Value": null }] }, { "Id": "Cell", "Calculations": [{ "Id": "X", "Value": "126439L" }, { "Id": "Y", "Value": "4244.0000000037253D" }, { "Id": "Size", "Value": "1L" }] }, { "Id": "Cell", "Calculations": [{ "Id": "X", "Value": "126439L" }, { "Id": "Y", "Value": "239.99999999650754D" }, { "Id": "Size", "Value": "1L" }] }] }, { "Group": { "ScopeId": { "ScopeValues": [{ "Value": "'Deming, WA'", "Key": "2Deming, WA" }] } }, "Calculations": [{ "Id": "Label", "Value": "'Deming, WA'" }], "Intersections": [{ "Id": "Cell", "Calculations": [{ "Id": "X", "Value": null }, { "Id": "Y", "Value": null }, { "Id": "Size", "Value": null }] }, { "Id": "Cell", "Calculations": [{ "Id": "X", "Value": "353L" }, { "Id": "Y", "Value": "8078.00000000163D" }, { "Id": "Size", "Value": "4L" }] }, { "Id": "Cell", "Calculations": [{ "Id": "X", "Value": null }, { "Id": "Y", "Value": null }, { "Id": "Size", "Value": null }] }, { "Id": "Cell", "Calculations": [{ "Id": "X", "Value": null }, { "Id": "Y", "Value": null }, { "Id": "Size", "Value": null }] }] }] }], "IsComplete": true }] };
-            var propertyRef1: powerbi.data.dsr.ConceptualPropertyReference = { Entity: 't', Property: 'p1' };
-            var propertyRef2: powerbi.data.dsr.ConceptualPropertyReference = { Entity: 't', Property: 'p2' };
-            var dataView = powerbi.data.dsr.readDsr(
+
+            var groupNames: string[] = [
+                'Equipment Failure',
+                'Scheduled Outage',
+                'Trees/Vegetation',
+                'Under Investigation',
+                ''
+            ];
+
+            var columns = [
                 {
-                    Select: [
-                        { "Kind": SelectKind.Group, "Depth": 0, "Value": "Label", "Format": "0" },
-                        { "Kind": SelectKind.Measure, "Value": "X", "Format": "#,0.00" },
-                        { "Kind": SelectKind.Measure, "Value": "Y", "Format": "#,0" },
-                        { "Kind": SelectKind.Measure, "Value": "Size", "Format": "#,0", "Min": ["MinSize"], "Max": ["MaxSize"] },
-                        { "Kind": SelectKind.Group, "SecondaryDepth": 0, "Value": "Label2" }],
-                    Expressions: {
-                        Primary: {
-                            Groupings: [{
-                                Keys: [{
-                                    Source: propertyRef1,
-                                    Select: 0,
-                                }]
-                            }]
-                        },
-                        Secondary: {
-                            Groupings: [{
-                                Keys: [{
-                                    Source: propertyRef2,
-                                    Select: 4,
-                                }]
-                            }]
-                        },
-                        Aggregates: {
-                            Select: 3,
-                            Kind: 3
-                        }
+                    format: '#,0.00',
+                    index: 1
+                }, {
+                    
+                    format: '#,0',
+                    index: 2
+                }, {
+                    format: '#,0',
+                    index: 3
+                }
+            ];
+
+            var dataViewMetadata: powerbi.DataViewMetadata = {
+                columns: [
+                    {
+                        displayName: '',
+                        format: '0',
+                        index: 0
+                    }, {
+                        displayName: '',
+                        index: 4
                     }
+                ]
+            };
+
+            for (var i = 0; i < groupNames.length; i++) {
+                var groupName = groupNames[i];
+
+                for (var j = 0; j < columns.length; j++) {
+                    var column = {
+                        displayName: groupName,
+                        format: columns[j].format,
+                        isMeasure: true,
+                        index: columns[j].index
+                    };
+
+                    dataViewMetadata.columns.push(column);
+                }
+            }
+
+            var colP1Ref = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 't', column: 'p1' });
+            var colP2Ref = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 't', column: 'p2' });
+
+            var seriesNames: string[] = [
+                'Bellevue, WA',
+                'Deming, WA'
+            ];
+            
+            var seriesIdentities = [
+                mocks.dataViewScopeIdentityWithEquality(colP1Ref, seriesNames[0]),
+                mocks.dataViewScopeIdentityWithEquality(colP1Ref, seriesNames[1])
+            ];
+
+            var seriesIdentiesForGroupNames = [
+                mocks.dataViewScopeIdentityWithEquality(colP2Ref, groupNames[0]),
+                mocks.dataViewScopeIdentityWithEquality(colP2Ref, groupNames[1]),
+                mocks.dataViewScopeIdentityWithEquality(colP2Ref, groupNames[2]),
+                mocks.dataViewScopeIdentityWithEquality(colP2Ref, groupNames[3])
+            ];
+
+            var dataViewValueColumns: powerbi.DataViewValueColumn[] = [
+                {
+                    source: dataViewMetadata.columns[2],
+                    values: [null, null],
+                    identity: seriesIdentiesForGroupNames[0],
+                }, {
+                    source: dataViewMetadata.columns[3],
+                    values: [null, null],
+                    identity: seriesIdentiesForGroupNames[0],
+                }, {
+                    source: dataViewMetadata.columns[4],
+                    values: [null, null],
+                    max: 404,
+                    min: 1,
+                    identity: seriesIdentiesForGroupNames[0],
+                }, {
+                    source: dataViewMetadata.columns[5],
+                    values: [null, 353],
+                    identity: seriesIdentiesForGroupNames[1],
+                }, {
+                    source: dataViewMetadata.columns[6],
+                    values: [null, 8078.00000000163],
+                    identity: seriesIdentiesForGroupNames[1],
+                }, {
+                    source: dataViewMetadata.columns[7],
+                    values: [null, 4],
+                    max: 404,
+                    min: 1,
+                    identity: seriesIdentiesForGroupNames[1],
+                }, {
+                    source: dataViewMetadata.columns[8],
+                    values: [126439, null],
+                    identity: seriesIdentiesForGroupNames[2],
+                }, {
+                    source: dataViewMetadata.columns[9],
+                    values: [4244.000000003725, null],
+                    identity: seriesIdentiesForGroupNames[2],
+                }, {
+                    source: dataViewMetadata.columns[10],
+                    values: [1, null],
+                    max: 404,
+                    min: 1,
+                    identity: seriesIdentiesForGroupNames[2],
+                }, {
+                    source: dataViewMetadata.columns[11],
+                    values: [126439, null],
+                    identity: seriesIdentiesForGroupNames[3],
+                }, {
+                    source: dataViewMetadata.columns[12],
+                    values: [239.99999999650754, null],
+                    identity: seriesIdentiesForGroupNames[3],
+                }, {
+                    source: dataViewMetadata.columns[13],
+                    values: [1, null],
+                    max: 404,
+                    min: 1,
+                    identity: seriesIdentiesForGroupNames[3],
+                }
+            ];
+
+            var dataView: powerbi.DataView = {
+                metadata: dataViewMetadata,
+                categorical: {
+                    categories: [{
+                        source: dataViewMetadata.columns[0],
+                        values: seriesNames,
+                        identity: seriesIdentities,
+                        identityFields: [
+                            colP1Ref
+                        ]
+                    }],
+                    values: DataViewTransform.createValueColumns(dataViewValueColumns, [colP2Ref])
                 },
-                dsrResult,
-                's').dataView;
+            };
+
+            dataView.categorical.values.source = dataViewMetadata.columns[1];
+            
 
             var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
             var scatterChartData = ScatterChart.converter(dataView, viewport, colors).dataPoints;
@@ -2285,7 +2639,7 @@ module powerbitests {
 
             var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
             var scatterChartData = ScatterChart.converter(pivotedDataView, viewport, colors).dataPoints;
-            expect(scatterChartData[0].category).toBe(null);
+            expect(scatterChartData[0].category).toBe(powerbi.visuals.valueFormatter.format(null));
             expect(scatterChartData[0].fill).not.toBe(scatterChartData[1].fill);
 
             //Tooltips
@@ -2736,6 +3090,73 @@ module powerbitests {
             expect(dataPoints[3].fill).toBe('#b100b7');
             expect(dataPoints[4].fill).toBe('#cceab7');
         });
+
+        it('scatter chart bubble gradient color - validate tool tip', () => {
+            var viewport: powerbi.IViewport = {
+                height: 500,
+                width: 500
+            };
+
+            var metadata: powerbi.DataViewMetadata = {
+                columns: [
+                    { displayName: 'col1' },
+                    { displayName: 'col2', isMeasure: true, roles: { "Y": true } },
+                    { displayName: 'col3', isMeasure: true, roles: { "X": true } },
+                    { displayName: 'col4', isMeasure: true, roles: { "Size": true } },
+                    { displayName: 'col5', isMeasure: true, roles: { "Gradient": true } }
+                ]
+            };
+            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+                mocks.dataViewScopeIdentity('a'),
+                mocks.dataViewScopeIdentity('b'),
+                mocks.dataViewScopeIdentity('c'),
+                mocks.dataViewScopeIdentity('d'),
+                mocks.dataViewScopeIdentity('e'),
+            ];
+            var objectDefinitions: powerbi.DataViewObjects[] = [
+                { dataPoint: { fill: { solid: { color: "#d9f2fb" } } } },
+                { dataPoint: { fill: { solid: { color: "#b1eab7" } } } },
+                { dataPoint: { fill: { solid: { color: "#cceab7" } } } },
+                { dataPoint: { fill: { solid: { color: "#b100b7" } } } },
+                { dataPoint: { fill: { solid: { color: "#cceab7" } } } }
+            ];
+            var dataView = {
+                metadata: metadata,
+                categorical: {
+                    categories: [{
+                        source: metadata.columns[0],
+                        values: ['a', 'b', 'c', 'd', 'e'],
+                        identity: categoryIdentities,
+                        objects: objectDefinitions
+                    }],
+                    values: DataViewTransform.createValueColumns([
+                        {
+                            source: metadata.columns[1],
+                            values: [110, 120, 130, 140, 150]
+                        }, {
+                            source: metadata.columns[2],
+                            values: [210, 220, 230, 240, 250]
+                        }, {
+                            source: metadata.columns[3],
+                            values: [10, 20, 15, 10, 100]
+                        }, {
+                            source: metadata.columns[4],
+                            values: [13, 33, 55, 11, 55]
+                        }])
+                }
+            };
+
+            var colors = powerbi.visuals.visualStyles.create().colorPalette.dataColors;
+            var scatterChartData = ScatterChart.converter(dataView, viewport, colors);
+            var dataPoints = scatterChartData.dataPoints;
+
+            expect(dataPoints[0].tooltipInfo).toEqual([{ displayName: 'col1', value: 'a' }, { displayName: 'col3', value: '210' }, { displayName: 'col2', value: '110' }, { displayName: 'col4', value: '10' }]);
+            expect(dataPoints[1].tooltipInfo).toEqual([{ displayName: 'col1', value: 'b' }, { displayName: 'col3', value: '220' }, { displayName: 'col2', value: '120' }, { displayName: 'col4', value: '20' }]);
+            expect(dataPoints[2].tooltipInfo).toEqual([{ displayName: 'col1', value: 'c' }, { displayName: 'col3', value: '230' }, { displayName: 'col2', value: '130' }, { displayName: 'col4', value: '15' }]);
+            expect(dataPoints[3].tooltipInfo).toEqual([{ displayName: 'col1', value: 'd' }, { displayName: 'col3', value: '240' }, { displayName: 'col2', value: '140' }, { displayName: 'col4', value: '10' }]);
+            expect(dataPoints[4].tooltipInfo).toEqual([{ displayName: 'col1', value: 'e' }, { displayName: 'col3', value: '250' }, { displayName: 'col2', value: '150' }, { displayName: 'col4', value: '100' }]);
+
+        });
     });
 
     describe('scatterChart interactivity', () => {
@@ -2743,17 +3164,13 @@ module powerbitests {
         var hostServices: powerbi.IVisualHostServices;
         var dataViewMetadataFourColumn: powerbi.DataViewMetadata = {
             columns: [
-                { displayName: 'col1', roles: { "Category": true }, type: DataShapeUtility.describeDataType(SemanticType.String) },
-                { displayName: 'col2', isMeasure: true, roles: { "X": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                { displayName: 'col3', isMeasure: true, roles: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                { displayName: 'col4', isMeasure: true, roles: { "Size": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) }
+                { displayName: 'col1', queryName: 'testQuery', roles: { "Category": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                { displayName: 'col2', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                { displayName: 'col3', isMeasure: true, roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                { displayName: 'col4', isMeasure: true, roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
             ]
         };
-
-        beforeEach(() => {
-            powerbitests.mocks.setLocale(powerbi.common.createLocalizationService());
-        });
-
+        
         beforeEach(() => {
             element = powerbitests.helpers.testDom('500', '500');
             hostServices = mocks.createVisualHostServices();
@@ -2829,7 +3246,10 @@ module powerbitests {
                             {
                                 data: [categoryIdentities[3]]
                             }
-                        ]
+                        ],
+                        data2: [{
+                            dataMap: { 'testQuery': categoryIdentities[3] }
+                        }]
                     });
 
                 done();
@@ -2894,6 +3314,11 @@ module powerbitests {
                             {
                                 data: [categoryIdentities[3]]
                             }
+                        ],
+                        data2: [
+                            {
+                                dataMap: { 'testQuery': categoryIdentities[3] }
+                            }
                         ]
                     });
                 trigger3(mockEvent);
@@ -2908,7 +3333,13 @@ module powerbitests {
                             {
                                 data: [categoryIdentities[1]]
                             }
+                        ],
+                        data2: [
+                            {
+                                dataMap: { 'testQuery': categoryIdentities[1] }
+                            }
                         ]
+
                     });
                 trigger3(mockEvent);
                 expect(dots[0].style.fillOpacity).toBe(defaultOpacity);
@@ -2986,11 +3417,16 @@ module powerbitests {
                             {
                                 data: [categoryIdentities[3]]
                             }
+                        ],
+                        data2: [
+                            {
+                                dataMap: { 'testQuery': categoryIdentities[3] }
+                            }
                         ]
                     });
                 trigger3(mockEvent);
                 expect(dots[0].style.fillOpacity).toBe(dimmedOpacity);
-                expect(dots[1].style.fillOpacity).toBe(defaultOpacity);
+                expect(dots[1].style.fillOpacity).toBe(dimmedOpacity);
                 expect(dots[2].style.fillOpacity).toBe(dimmedOpacity);
                 expect(dots[3].style.fillOpacity).toBe(defaultOpacity);
                 expect(dots[4].style.fillOpacity).toBe(dimmedOpacity);
@@ -2999,62 +3435,93 @@ module powerbitests {
                         data: [
                             {
                                 data: [categoryIdentities[3]]
-                            },
+                            }
+                        ],
+                        data2: [
+                            {
+                                dataMap: { 'testQuery': categoryIdentities[3] }
+                            }
+                        ]
+
+                    });
+                expect(hostServices.onSelect).toHaveBeenCalledWith(
+                    {
+                        data: [
                             {
                                 data: [categoryIdentities[1]]
+                            }
+                        ],
+                        data2: [
+                            {
+                                dataMap: { 'testQuery': categoryIdentities[1] }
                             }
                         ]
 
                     });
                 trigger4(mockEvent);
                 expect(dots[0].style.fillOpacity).toBe(dimmedOpacity);
-                expect(dots[1].style.fillOpacity).toBe(defaultOpacity);
+                expect(dots[1].style.fillOpacity).toBe(dimmedOpacity);
                 expect(dots[2].style.fillOpacity).toBe(dimmedOpacity);
-                expect(dots[3].style.fillOpacity).toBe(defaultOpacity);
+                expect(dots[3].style.fillOpacity).toBe(dimmedOpacity);
                 expect(dots[4].style.fillOpacity).toBe(defaultOpacity);
                 expect(hostServices.onSelect).toHaveBeenCalledWith(
                     {
                         data: [
                             {
                                 data: [categoryIdentities[3]], 
-                            },
+                            }
+                        ],
+                        data2: [
                             {
-                                data: [categoryIdentities[1]]
-                            },
-                            {
-                                data: [categoryIdentities[0]]
+                                dataMap: { 'testQuery': categoryIdentities[3] }
                             }
                         ]
                     });
-                trigger1(mockEvent);
-                expect(dots[0].style.fillOpacity).toBe(dimmedOpacity);
-                expect(dots[1].style.fillOpacity).toBe(dimmedOpacity);
-                expect(dots[2].style.fillOpacity).toBe(dimmedOpacity);
-                expect(dots[3].style.fillOpacity).toBe(defaultOpacity);
-                expect(dots[4].style.fillOpacity).toBe(defaultOpacity);
                 expect(hostServices.onSelect).toHaveBeenCalledWith(
                     {
                         data: [
                             {
                                 data: [categoryIdentities[1]]
-                            },
+                            }
+                        ],
+                        data2: [
                             {
-                                data: [categoryIdentities[0]]
+                                dataMap: { 'testQuery': categoryIdentities[1] }
                             }
                         ]
                     });
-                trigger3(mockEvent);
-                trigger4(mockEvent);
-                expect(dots[0].style.fillOpacity).toBe(defaultOpacity);
-                expect(dots[1].style.fillOpacity).toBe(defaultOpacity);
-                expect(dots[2].style.fillOpacity).toBe(defaultOpacity);
-                expect(dots[3].style.fillOpacity).toBe(defaultOpacity);
-                expect(dots[4].style.fillOpacity).toBe(defaultOpacity);
                 expect(hostServices.onSelect).toHaveBeenCalledWith(
                     {
-                        data: []
+                        data: [
+                            {
+                                data: [categoryIdentities[0]]
+                            }
+                        ],
+                        data2: [
+                            {
+                                dataMap: { 'testQuery': categoryIdentities[0] }
+                            }
+                        ]
                     });
-
+                trigger1(mockEvent);
+                expect(dots[0].style.fillOpacity).toBe(dimmedOpacity);
+                expect(dots[1].style.fillOpacity).toBe(defaultOpacity);
+                expect(dots[2].style.fillOpacity).toBe(dimmedOpacity);
+                expect(dots[3].style.fillOpacity).toBe(dimmedOpacity);
+                expect(dots[4].style.fillOpacity).toBe(dimmedOpacity);
+                expect(hostServices.onSelect).toHaveBeenCalledWith(
+                    {
+                        data: [                            
+                            {
+                                data: [categoryIdentities[0]]
+                            }
+                        ],
+                        data2: [
+                            {
+                                dataMap: { 'testQuery': categoryIdentities[0] }
+                            }
+                        ]
+                    });
                 done();
             }, DefaultWaitForRender);
         });
@@ -3124,11 +3591,16 @@ module powerbitests {
                             {
                                 data: [categoryIdentities[3]]
                             }
+                        ],
+                        data2: [
+                            {
+                                dataMap: { 'testQuery': categoryIdentities[3] }
+                            }
                         ]
                     });
                 trigger3(multiEvent);
                 expect(dots[0].style.fillOpacity).toBe(dimmedOpacity);
-                expect(dots[1].style.fillOpacity).toBe(defaultOpacity);
+                expect(dots[1].style.fillOpacity).toBe(dimmedOpacity);
                 expect(dots[2].style.fillOpacity).toBe(dimmedOpacity);
                 expect(dots[3].style.fillOpacity).toBe(defaultOpacity);
                 expect(dots[4].style.fillOpacity).toBe(dimmedOpacity);
@@ -3138,8 +3610,23 @@ module powerbitests {
                             {
                                 data: [categoryIdentities[3]]
                             },
+                        ],
+                        data2: [
+                            {
+                                dataMap: { 'testQuery': categoryIdentities[3] }
+                            }
+                        ]
+                    });
+                expect(hostServices.onSelect).toHaveBeenCalledWith(
+                    {
+                        data: [
                             {
                                 data: [categoryIdentities[1]]
+                            }
+                        ],
+                        data2: [
+                            {
+                                dataMap: { 'testQuery': categoryIdentities[1] }
                             }
                         ]
                     });
@@ -3151,7 +3638,7 @@ module powerbitests {
                 expect(dots[4].style.fillOpacity).toBe(dimmedOpacity);
                 trigger4(multiEvent);
                 expect(dots[0].style.fillOpacity).toBe(dimmedOpacity);
-                expect(dots[1].style.fillOpacity).toBe(defaultOpacity);
+                expect(dots[1].style.fillOpacity).toBe(dimmedOpacity);
                 expect(dots[2].style.fillOpacity).toBe(dimmedOpacity);
                 expect(dots[3].style.fillOpacity).toBe(dimmedOpacity);
                 expect(dots[4].style.fillOpacity).toBe(defaultOpacity);
@@ -3160,9 +3647,26 @@ module powerbitests {
                         data: [
                             {
                                 data: [categoryIdentities[3]]
-                            },
+                            }
+                        ]
+                        ,
+                        data2: [
+                            {
+                                dataMap: { 'testQuery': categoryIdentities[3] }
+                            }
+                        ]
+                    });
+                expect(hostServices.onSelect).toHaveBeenCalledWith(
+                    {
+                        data: [
                             {
                                 data: [categoryIdentities[0]]
+                            }
+                        ]
+                        ,
+                        data2: [
+                            {
+                                dataMap: { 'testQuery': categoryIdentities[0] }
                             }
                         ]
                     });
@@ -3178,9 +3682,14 @@ module powerbitests {
                             {
                                 data: [categoryIdentities[1]]
                             }
+                        ],
+                        data2: [
+                            {
+                                dataMap: { 'testQuery': categoryIdentities[1] }
+                            }
                         ]
                     });
-
+                
                 done();
             }, DefaultWaitForRender);
         });
@@ -3245,6 +3754,11 @@ module powerbitests {
                                 [
                                     identities[3]
                                 ]
+                            }
+                        ],
+                        data2: [
+                            {
+                                dataMap: { 'testQuery': identities[3] }
                             }
                         ]
                     });
@@ -3321,6 +3835,11 @@ module powerbitests {
                                     identities[3]
                                 ]
                             }
+                        ],
+                        data2: [
+                            {
+                                dataMap: { 'testQuery': identities[3] }
+                            }
                         ]
                     });
 
@@ -3345,10 +3864,10 @@ module powerbitests {
         var element: JQuery;
         var dataViewMetadataFourColumn: powerbi.DataViewMetadata = {
             columns: [
-                { displayName: 'col1', roles: { "Category": true }, type: DataShapeUtility.describeDataType(SemanticType.String) },
-                { displayName: 'col2', isMeasure: true, roles: { "X": true }, type: DataShapeUtility.describeDataType(SemanticType.Integer) },
-                { displayName: 'col3', isMeasure: true, roles: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Integer) },
-                { displayName: 'col4', isMeasure: true, roles: { "Size": true }, type: DataShapeUtility.describeDataType(SemanticType.Integer) }
+                { displayName: 'col1', queryName: 'testQuery', roles: { "Category": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                { displayName: 'col2', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Integer) },
+                { displayName: 'col3', isMeasure: true, roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Integer) },
+                { displayName: 'col4', isMeasure: true, roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Integer) }
             ]
         };
         var identities: powerbi.DataViewScopeIdentity[] = [
@@ -3400,9 +3919,9 @@ module powerbitests {
         it('Interaction scatter chart click validation', (done) => {
             var scatterChart = (<any>v).layers[0];
             var selectedCircle = scatterChart.mainGraphicsContext.selectAll('circle.dot').filter(function (d, i) { return d.category === 'd'; });
-            var x = selectedCircle.attr('cx');
-            var y = selectedCircle.attr('cy');
-            var mouseCordinate = { x: x + 3, y: y + 2 };
+            var x = parseFloat(selectedCircle.attr('cx'));
+            var y = parseFloat(selectedCircle.attr('cy'));
+            var mouseCordinate = { x: x - 5, y: y + 6 };
             spyOn(scatterChart.interactivityService.behavior, 'getMouseCoordinates').and.returnValue(mouseCordinate);
             scatterChart.interactivityService.behavior.onClick();
             setTimeout(() => {
@@ -3593,17 +4112,13 @@ module powerbitests {
         var v: powerbi.IVisual, element: JQuery;
         var dataViewMetadataFourColumn: powerbi.DataViewMetadata = {
             columns: [
-                { displayName: 'col1', roles: { "Category": true }, type: DataShapeUtility.describeDataType(SemanticType.String) },
-                { displayName: 'col2', isMeasure: true, roles: { "X": true }, type: DataShapeUtility.describeDataType(SemanticType.Integer) },
-                { displayName: 'col3', isMeasure: true, roles: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Integer) },
-                { displayName: 'col4', isMeasure: true, roles: { "Size": true }, type: DataShapeUtility.describeDataType(SemanticType.Integer) }
+                { displayName: 'col1', queryName: 'testQuery', roles: { "Category": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                { displayName: 'col2', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                { displayName: 'col3', isMeasure: true, roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                { displayName: 'col4', isMeasure: true, roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
             ]
         };
-
-        beforeEach(() => {
-            powerbitests.mocks.setLocale(powerbi.common.createLocalizationService());
-        });
-
+        
         beforeEach(() => {
             element = powerbitests.helpers.testDom('500', '500');
             v = powerbi.visuals.visualPluginFactory.create().getPlugin('scatterChart').create();
@@ -3650,8 +4165,10 @@ module powerbitests {
 
             setTimeout(() => {
                 var points = v.enumerateObjectInstances({ objectName: 'dataPoint' });
-                expect(points.length).toBe(5);
-                for (var i = 0; i < points.length; i++) {
+                expect(points.length).toBe(7);
+                expect(points[0].properties['defaultColor']).toBeDefined();
+                expect(points[1].properties['showAllDataPoints']).toBeDefined();
+                for (var i = 2; i < points.length; i++) {
                     expect(_.contains(categoryValues, points[i].displayName)).toBeTruthy();
                     expect(points[i].properties['fill']).toBeDefined();
                 }
@@ -3711,9 +4228,20 @@ module powerbitests {
                     metadata: dataViewMetadataFourColumn,
                     categorical: {
                         categories: [{
-                            source: dataViewMetadataFourColumn.columns[0],
+                            source: dataViewMetadataFourColumn.columns[1],
                             values: [1, 2, 3, 4, 5],
-                        }]
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: dataViewMetadataFourColumn.columns[1],
+                                values: [100, 200, 300, 400, 500]
+                            }, {
+                                source: dataViewMetadataFourColumn.columns[2],
+                                values: [200, 400, 600, 800, 1000]
+                            }, {
+                                source: dataViewMetadataFourColumn.columns[3],
+                                values: [1, 2, 3, 4, 5]
+                            }])
                     }
                 }]
             };
@@ -3723,7 +4251,6 @@ module powerbitests {
 
             expect(labels[0].textContent).toBe('0');
             expect(labels[labels.length -1].textContent).toBe('25');
-
         });
 
         it('Y-axis customization: Test forced domain (start and end)',() => {
@@ -3744,7 +4271,18 @@ module powerbitests {
                         categories: [{
                             source: dataViewMetadataFourColumn.columns[0],
                             values: [1, 2, 3, 4, 5],
-                        }]
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: dataViewMetadataFourColumn.columns[1],
+                                values: [100, 200, 300, 400, 500]
+                            }, {
+                                source: dataViewMetadataFourColumn.columns[2],
+                                values: [200, 400, 600, 800, 1000]
+                            }, {
+                                source: dataViewMetadataFourColumn.columns[3],
+                                values: [1, 2, 3, 4, 5]
+                            }])
                     }
                 }]
             };
@@ -3754,7 +4292,277 @@ module powerbitests {
 
             expect(labels[0].textContent).toBe('0');
             expect(labels[labels.length - 1].textContent).toBe('500');
+        });
+    });
 
+    describe("Fill Point validation", () => {
+
+        var v: powerbi.IVisual, element: JQuery;
+        var dataViewMetadataFourColumn: powerbi.DataViewMetadata = {
+            columns: [
+                { displayName: 'col1', queryName: 'testQuery', roles: { "Category": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                { displayName: 'col2', isMeasure: true, roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                { displayName: 'col3', isMeasure: true, roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                { displayName: 'col4', isMeasure: true, roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) }
+            ]
+        };
+
+        var hostServices: powerbi.IVisualHostServices;
+
+        beforeEach(() => {
+            hostServices = powerbitests.mocks.createVisualHostServices();
+            element = powerbitests.helpers.testDom('500', '500');
+            v = powerbi.visuals.visualPluginFactory.create().getPlugin('scatterChart').create();
+            v.init({
+                element: element,
+                host: hostServices,
+                style: powerbi.visuals.visualStyles.create(),
+                viewport: {
+                    height: element.height(),
+                    width: element.width()
+                },
+                animation: { transitionImmediate: true },
+                interactivity: { isInteractiveLegend: false },
+            });
+        });
+
+        it('scatter chart with size verify label fill with null size', (done) => {
+            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+                mocks.dataViewScopeIdentity('a'),
+                mocks.dataViewScopeIdentity('b'),
+                mocks.dataViewScopeIdentity('c'),
+            ];
+            v.onDataChanged({
+                dataViews: [{
+                    metadata: dataViewMetadataFourColumn,
+                    categorical: {
+                        categories: [{
+                            source: dataViewMetadataFourColumn.columns[0],
+                            values: ['a', 'b', 'c'],
+                            identity: categoryIdentities,
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: dataViewMetadataFourColumn.columns[1],
+                                values: [0.1495, 0.15, 0.1633]
+                            },
+                            {
+                                source: dataViewMetadataFourColumn.columns[2],
+                                values: [0.1495, 0.15, 0.1633]
+                            },
+                            {
+                                source: dataViewMetadataFourColumn.columns[3],
+                                values: [3, null, 27],
+                                min: 0,
+                                max: 30
+                            }
+                        ])
+                    }
+                }]
+            });
+
+            setTimeout(() => {
+                expect($('.scatterChart .mainGraphicsContext .dot').first().css('fill-opacity')).toBeGreaterThan(0);
+                // null size should be hollow
+                expect($('.scatterChart .mainGraphicsContext .dot').eq(2).css('fill-opacity')).toBe('0');
+
+                done();
+            }, DefaultWaitForRender);
+        });
+
+        it('scatter chart with size verify label fill', (done) => {
+            var categoryIdentities: powerbi.DataViewScopeIdentity[] = [
+                mocks.dataViewScopeIdentity('a'),
+                mocks.dataViewScopeIdentity('b'),
+                mocks.dataViewScopeIdentity('c'),
+                mocks.dataViewScopeIdentity('d'),
+                mocks.dataViewScopeIdentity('e'),
+            ];
+            v.onDataChanged({
+                dataViews: [{
+                    metadata: dataViewMetadataFourColumn,
+                    categorical: {
+                        categories: [{
+                            source: dataViewMetadataFourColumn.columns[0],
+                            values: ['a', 'b', 'c'],
+                            identity: categoryIdentities,
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: dataViewMetadataFourColumn.columns[1],
+                                values: [0.1495, 0.15, 0.1633]
+                            },
+                            {
+                                source: dataViewMetadataFourColumn.columns[2],
+                                values: [0.1495, 0.15, 0.1633]
+                            },
+                            {
+                                source: dataViewMetadataFourColumn.columns[3],
+                                values: [3, 15, 27],
+                                min: 0,
+                                max: 30
+                            }
+                        ])
+                    }
+                }]
+            });
+
+            setTimeout(() => {
+                var dots = $('.scatterChart .axisGraphicsContext .mainGraphicsContext .dot');
+                for (var i = 0; i < dots.length; i++) {
+                    var pointFill = dots.eq(i).css('fill-opacity');
+                    expect(pointFill).toBeGreaterThan(0);
+                }
+                done();
+            }, DefaultWaitForRender);
+        });        
+
+        it('scatter chart without size verify label fill when fill point is on', (done) => {
+            // Category and series are the same field
+            var metadata: powerbi.DataViewMetadata = {
+                columns: [
+                    { displayName: 'series', isMeasure: false, queryName: 'series', roles: { "Category": true, "Series": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                    { displayName: 'value1', groupName: 'a', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'a', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value1', groupName: 'b', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'b', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value1', groupName: 'c', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'c', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                ],
+                objects: {
+                    fillPoint: { show: true },
+                },
+            };
+            var seriesValues = ['a', 'b', 'c'];
+            var seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
+            var seriesIdentityField = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'series' });
+
+            var valueColumns = DataViewTransform.createValueColumns([
+                {
+                    source: metadata.columns[1],
+                    values: [0, null, null],
+                    identity: seriesIdentities[0],
+                }, {
+                    source: metadata.columns[2],
+                    values: [10, null, null],
+                    identity: seriesIdentities[0],
+                }, {
+                    source: metadata.columns[3],
+                    values: [null, 100, null],
+                    identity: seriesIdentities[1],
+                }, {
+                    source: metadata.columns[4],
+                    values: [null, 20, null],
+                    identity: seriesIdentities[1],
+                }, {
+                    source: metadata.columns[5],
+                    values: [null, null, 200],
+                    identity: seriesIdentities[2],
+                }, {
+                    source: metadata.columns[6],
+                    values: [null, null, 30],
+                    identity: seriesIdentities[2],
+                }],
+                [seriesIdentityField]);
+            valueColumns.source = metadata.columns[0];
+
+            v.onDataChanged({
+                dataViews: [{
+                    metadata: metadata,
+                    categorical: {
+                        categories: [{
+                            source: metadata.columns[0],
+                            values: seriesValues,
+                            identity: seriesIdentities,
+                            identityFields: [seriesIdentityField],
+                        }],
+                        values: valueColumns
+                    }
+                }]
+            });
+
+            setTimeout(() => {
+                var dots = $('.scatterChart .axisGraphicsContext .mainGraphicsContext .dot');
+                for (var i = 0; i < dots.length; i++) {
+                    var pointFill = dots.eq(i).css('fill-opacity');
+                    expect(pointFill).toBeGreaterThan(0);
+                }
+                done();
+            }, DefaultWaitForRender);
+        });
+
+        it('scatter chart without size verify label fill when fill point is off', (done) => {
+            // Category and series are the same field
+            var metadata: powerbi.DataViewMetadata = {
+                columns: [
+                    { displayName: 'series', isMeasure: false, queryName: 'series', roles: { "Category": true, "Series": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                    { displayName: 'value1', groupName: 'a', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'a', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value1', groupName: 'b', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'b', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value1', groupName: 'c', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                    { displayName: 'value2', groupName: 'c', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                ],
+                objects: {
+                    fillPoint: { show: false },
+                },
+            };
+            var seriesValues = ['a', 'b', 'c'];
+            var seriesIdentities = seriesValues.map(v => mocks.dataViewScopeIdentity(v));
+            var seriesIdentityField = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: 'e', column: 'series' });
+
+            var valueColumns = DataViewTransform.createValueColumns([
+                {
+                    source: metadata.columns[1],
+                    values: [0, null, null],
+                    identity: seriesIdentities[0],
+                }, {
+                    source: metadata.columns[2],
+                    values: [10, null, null],
+                    identity: seriesIdentities[0],
+                }, {
+                    source: metadata.columns[3],
+                    values: [null, 100, null],
+                    identity: seriesIdentities[1],
+                }, {
+                    source: metadata.columns[4],
+                    values: [null, 20, null],
+                    identity: seriesIdentities[1],
+                }, {
+                    source: metadata.columns[5],
+                    values: [null, null, 200],
+                    identity: seriesIdentities[2],
+                }, {
+                    source: metadata.columns[6],
+                    values: [null, null, 30],
+                    identity: seriesIdentities[2],
+                }],
+                [seriesIdentityField]);
+            valueColumns.source = metadata.columns[0];
+
+            v.onDataChanged({
+                dataViews: [{
+                    metadata: metadata,
+                    categorical: {
+                        categories: [{
+                            source: metadata.columns[0],
+                            values: seriesValues,
+                            identity: seriesIdentities,
+                            identityFields: [seriesIdentityField],
+                        }],
+                        values: valueColumns
+                    }
+                }]
+            });
+
+            setTimeout(() => {
+                var dots = $('.scatterChart .axisGraphicsContext .mainGraphicsContext .dot');
+                for (var i = 0; i < dots.length; i++) {
+                    var pointFill = dots.eq(i).css('fill-opacity');
+                    expect(pointFill).toBe('0');
+                }
+                done();
+            }, DefaultWaitForRender);
         });
     });
 
@@ -3781,16 +4589,16 @@ module powerbitests {
         // Category and series are the same field
         var metadata: powerbi.DataViewMetadata = {
             columns: [
-                { displayName: 'series', isMeasure: false, queryName: 'series', roles: { "Category": true, "Series": true }, type: DataShapeUtility.describeDataType(SemanticType.String) },
-                { displayName: 'value1', groupName: 'a', isMeasure: true, queryName: "x", roles: { "X": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                { displayName: 'value2', groupName: 'a', isMeasure: true, queryName: "size", roles: { "Size": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                { displayName: 'value3', groupName: 'a', isMeasure: true, queryName: "y", roles: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                { displayName: 'value1', groupName: 'b', isMeasure: true, queryName: "x", roles: { "X": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                { displayName: 'value2', groupName: 'b', isMeasure: true, queryName: "size", roles: { "Size": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                { displayName: 'value3', groupName: 'b', isMeasure: true, queryName: "y", roles: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                { displayName: 'value1', groupName: 'c', isMeasure: true, queryName: "x", roles: { "X": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                { displayName: 'value2', groupName: 'c', isMeasure: true, queryName: "size", roles: { "Size": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
-                { displayName: 'value3', groupName: 'c', isMeasure: true, queryName: "y", roles: { "Y": true }, type: DataShapeUtility.describeDataType(SemanticType.Number) },
+                { displayName: 'series', isMeasure: false, queryName: 'series', roles: { "Category": true, "Series": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text) },
+                { displayName: 'value1', groupName: 'a', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                { displayName: 'value2', groupName: 'a', isMeasure: true, queryName: "size", roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                { displayName: 'value3', groupName: 'a', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                { displayName: 'value1', groupName: 'b', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                { displayName: 'value2', groupName: 'b', isMeasure: true, queryName: "size", roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                { displayName: 'value3', groupName: 'b', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                { displayName: 'value1', groupName: 'c', isMeasure: true, queryName: "x", roles: { "X": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                { displayName: 'value2', groupName: 'c', isMeasure: true, queryName: "size", roles: { "Size": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
+                { displayName: 'value3', groupName: 'c', isMeasure: true, queryName: "y", roles: { "Y": true }, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double) },
             ],
             objects: { categoryLabels: { show: true } },
         };

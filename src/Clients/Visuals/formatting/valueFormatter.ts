@@ -24,12 +24,16 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="../_references.ts"/>
+
 module powerbi.visuals {
-    /** Formats the value using provided format expression and culture
-    * @param value - value to be formatted and converted to string.
-    * @param format - format to be applied if the number shouldn't be abbreviated.
-    * If the number should be abbreviated this string is checked for special characters like $ or % if any
-    */
+    
+    /**
+     * Formats the value using provided format expression and culture
+     * @param value - value to be formatted and converted to string.
+     * @param format - format to be applied if the number shouldn't be abbreviated.
+     * If the number should be abbreviated this string is checked for special characters like $ or % if any
+     */
     export interface ICustomValueFormatter {
         (value: any, format?: string): string;
     }
@@ -58,6 +62,9 @@ module powerbi.visuals {
 
         /** Specifies the maximum number of decimal places to show*/
         precision?: number;
+
+        /** Specifies the column type of the data value */
+        columnType?: ValueType;
     }
 
     export interface IValueFormatter {
@@ -101,6 +108,8 @@ module powerbi.visuals {
             'RestatementComma': '{0}, {1}',
             'RestatementCompoundAnd': '{0} and {1}',
             'RestatementCompoundOr': '{0} or {1}',
+            'DisplayUnitSystem_EAuto_Title': 'Auto',
+            'DisplayUnitSystem_E0_Title': 'None',
             'DisplayUnitSystem_E3_LabelFormat': '{0}K',
             'DisplayUnitSystem_E3_Title': 'Thousands',
             'DisplayUnitSystem_E6_LabelFormat': '{0}M',
@@ -159,8 +168,10 @@ module powerbi.visuals {
         }
 
         function describeUnit(exponent: number): DisplayUnitSystemNames {
-            var title: string = defaultLocalizedStrings["DisplayUnitSystem_E" + exponent + "_Title"];
-            var format: string = defaultLocalizedStrings["DisplayUnitSystem_E" + exponent + "_LabelFormat"];
+            var exponentLookup = (exponent === -1) ? 'Auto' : exponent.toString();
+
+            var title: string = defaultLocalizedStrings["DisplayUnitSystem_E" + exponentLookup + "_Title"];
+            var format: string = (exponent <= 0) ? '{0}' : defaultLocalizedStrings["DisplayUnitSystem_E" + exponentLookup + "_LabelFormat"];
 
             if (title || format)
                 return { title: title, format: format };
@@ -187,6 +198,8 @@ module powerbi.visuals {
 
         var MaxScaledDecimalPlaces = 2;
         var MaxValueForDisplayUnitRounding = 1000;
+        var MinIntegerValueForDisplayUnits = 10000;
+        var MinPrecisionForDisplayUnits = 2;
 
         export function getFormatMetadata(format: string): powerbi.NumberFormat.NumericFormatMetadata {
             return powerbi.NumberFormat.getCustomFormatMetadata(format);
@@ -233,7 +246,7 @@ module powerbi.visuals {
                 if (forcePrecision) {
                     decimals = -options.precision;
                 }
-                else if (displayUnitSystem.displayUnit)
+                else if (displayUnitSystem.displayUnit && displayUnitSystem.displayUnit.value > 1)
                     decimals = -MaxScaledDecimalPlaces;
 
                 return {
@@ -243,7 +256,7 @@ module powerbi.visuals {
                         if (!StringExtensions.isNullOrUndefinedOrWhiteSpaceString(formattedValue))
                             return formattedValue;
 
-                        if (value && !displayUnitSystem.displayUnit && Math.abs(value) < MaxValueForDisplayUnitRounding && !forcePrecision)
+                        if (value && !displayUnitSystem.isScalingUnit() && Math.abs(value) < MaxValueForDisplayUnitRounding && !forcePrecision)
                             value = Double.roundToPrecision(value, Double.pow10(Double.getPrecision(value)));
 
                         return singleValueFormattingMode ?
@@ -295,6 +308,8 @@ module powerbi.visuals {
                     return new WholeUnitsDisplayUnitSystem(locale.describe);
                 case DisplayUnitSystemType.Verbose:
                     return new NoDisplayUnitSystem();
+                case DisplayUnitSystemType.DataLabels:
+                    return new DataLabelsDisplayUnitSystem(locale.describe);
                 default:
                     debug.assertFail('Unknown display unit system type');
                     return new DefaultDisplayUnitSystem(locale.describe);
@@ -304,6 +319,25 @@ module powerbi.visuals {
         function shouldUseNumericDisplayUnits(options: ValueFormatterOptions): boolean {
             var value = options.value;
             var value2 = options.value2;
+            var format = options.format;
+            // For singleValue visuals like card, gauge we don't want to roundoff data to the nearest thousands so format the whole number / integers below 10K to not use display units 
+            if (options.formatSingleValues && format) {
+
+                if (Math.abs(value) < MinIntegerValueForDisplayUnits) {
+
+                    var isCustomFormat = !powerbi.NumberFormat.isStandardFormat(format);
+
+                    if (isCustomFormat) {
+                        var precision = powerbi.NumberFormat.getCustomFormatMetadata(format, isCustomFormat).precision;
+
+                        if (precision < MinPrecisionForDisplayUnits)
+                            return false;
+                    }
+                    else if (Double.isInteger(value))
+                        return false;
+                }
+            }
+
             if ((typeof value === 'number') || (typeof value2 === 'number')) {
                 return true;
             }
@@ -364,12 +398,12 @@ module powerbi.visuals {
             return result;
         } 
 
-        // The returned string will look like 'A, B, ..., and C' 
+        /** The returned string will look like 'A, B, ..., and C'  */
         export function formatListAnd(strings: string[]): string {
             return formatListCompound(strings, locale.restatementCompoundAnd);
         }
 
-        // The returned string will look like 'A, B, ..., or C' 
+        /** The returned string will look like 'A, B, ..., or C' */
         export function formatListOr(strings: string[]): string {
             return formatListCompound(strings, locale.restatementCompoundOr);
         }

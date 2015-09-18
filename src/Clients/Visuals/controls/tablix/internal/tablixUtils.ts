@@ -24,6 +24,8 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="../../../_references.ts"/>
+
 module powerbi.visuals.controls {
 
     export module HTMLElementUtils {
@@ -80,8 +82,10 @@ module powerbi.visuals.controls {
 
             return scale;
         }
-
-        // Get scale of element, return 1 when not scaled
+        
+        /**
+         * Get scale of element, return 1 when not scaled.
+         */
         export function getScale(element: any): number {
             element = $(element);
 

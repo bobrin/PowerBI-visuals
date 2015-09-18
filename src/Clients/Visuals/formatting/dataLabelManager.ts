@@ -24,6 +24,8 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="../_references.ts"/>
+
 module powerbi {
 
     import shapes = powerbi.visuals.shapes;
@@ -210,8 +212,7 @@ module powerbi {
     * can be repositioned or get hidden.
     */
     export class DataLabelManager {
-        private _size: shapes.ISize;
-        
+
         public movingStep: number = 3;
         public hideOverlapped: boolean = true;
         public static DefaultAnchorMargin: number = 0; // For future use
@@ -241,16 +242,21 @@ module powerbi {
 
         public get defaultSettings(): IDataLabelSettings {
             return this._defaultSettings;
-        }        
+        }
 
         /** Arranges the lables position and visibility*/
-        public hideCollidedLabels(viewport: IViewport, data: any[], layout: any): powerbi.visuals.LabelEnabledDataPoint[] {
+        public hideCollidedLabels(viewport: IViewport, data: any[], layout: any, addTransform: boolean = false): powerbi.visuals.LabelEnabledDataPoint[] {
 
-            this._size = { width: viewport.width, height: viewport.height };
             // Split size into a grid
-            var arrangeGrid = new DataLabelArrangeGrid(this._size, data, layout);
+            var arrangeGrid = new DataLabelArrangeGrid(viewport, data, layout);
             var filteredData = [];
-            
+            var transform: shapes.IVector = { x: 0, y: 0 };
+
+            if (addTransform) {
+                transform.x = viewport.width / 2;
+                transform.y = viewport.height / 2;
+            }
+
             for (var i = 0, len = data.length; i < len; i++) {
 
                 // Filter unwanted data points
@@ -261,16 +267,16 @@ module powerbi {
                 var info = this.getLabelInfo(data[i]);
 
                 info.anchorPoint = {
-                    x: layout.labelLayout.x(data[i]),
-                    y: layout.labelLayout.y(data[i])
+                    x: layout.labelLayout.x(data[i]) + transform.x,
+                    y: layout.labelLayout.y(data[i]) + transform.y,
                 };
 
                 var position: shapes.IRect = this.calculateContentPosition(info, info.contentPosition, data[i].size, info.anchorMargin);
 
-                if (DataLabelManager.isValid(position) && !this.hasCollisions(arrangeGrid, info, position, this._size)) {
-                    data[i].labelX = position.left;
-                    data[i].labelY = position.top;
-                    
+                if (DataLabelManager.isValid(position) && !this.hasCollisions(arrangeGrid, info, position, viewport)) {
+                    data[i].labelX = position.left - transform.x;
+                    data[i].labelY = position.top - transform.y;
+
                     // Keep track of all panel elements positions.
                     arrangeGrid.add(info, position);
 
@@ -283,10 +289,9 @@ module powerbi {
         }
 
         /**
-        * Merges the label element info with the panel element info and returns correct label info.
-        * @param {ILabelElementInfo} source The label info.
-        * @return {ILabelElementInfo}
-        */
+         * Merges the label element info with the panel element info and returns correct label info.
+         * @param source The label info.
+         */
         public getLabelInfo(source: IDataLabelInfo): IDataLabelInfo {
 
             var settings = this._defaultSettings;
@@ -324,7 +329,7 @@ module powerbi {
                         case ContentPositions.MiddleRight:
                         case ContentPositions.BottomRight:
                             position.x += contentSize.width / 2.0;
-                            break;                        
+                            break;
                     }
                 }
 
@@ -495,7 +500,7 @@ module powerbi {
                     contentSize,
                     offset);
             }
-            
+
             // Determine position using anchor rectangle.
             return this.calculateContentPositionFromRect(
                 anchoredElementInfo.anchorRect,
@@ -558,15 +563,22 @@ module powerbi {
         private static ARRANGEGRID_MAX_COUNT = 100;
 
         /**
-        * Creates new ArrangeGrid.
-        * @param {DataLabelManager} manager The owner data labels.
-        * @param {shapes.ISize} size The available size
-        */
+         * Creates new ArrangeGrid.
+         * @param size The available size
+         */
         constructor(size: shapes.ISize, elements: any[], layout: powerbi.visuals.ILabelLayout) {
             if (size.width === 0 || size.height === 0) {
                 this._cellSize = size;
                 this._rowCount = this._colCount = 0;
             }
+
+            var baseProperties: TextProperties = {
+                fontFamily: powerbi.visuals.dataLabelUtils.LabelTextProperties.fontFamily,
+                fontSize: powerbi.visuals.dataLabelUtils.LabelTextProperties.fontSize,
+                fontWeight: powerbi.visuals.dataLabelUtils.LabelTextProperties.fontWeight,
+            };
+
+            var textHeight = TextMeasurementService.estimateSvgTextHeight(baseProperties);
 
             //sets the _cell size to be twice of the Max with and Max height of the elements 
             this._cellSize = { width: 0, height: 0 };
@@ -576,18 +588,14 @@ module powerbi {
                 // Fill label field
                 child.labeltext = layout.labelText(child);
 
-                var properties: TextProperties = {
-                    fontFamily: powerbi.visuals.dataLabelUtils.LabelTextProperties.fontFamily,
-                    fontSize: powerbi.visuals.dataLabelUtils.LabelTextProperties.fontSize,
-                    fontWeight: powerbi.visuals.dataLabelUtils.LabelTextProperties.fontWeight,
-                    text: child.labeltext,
-                };
+                var properties: TextProperties = Prototype.inherit(baseProperties);
+                properties.text = child.labeltext;
 
                 child.size = {
                     width: TextMeasurementService.measureSvgTextWidth(properties),
-                    height: TextMeasurementService.measureSvgTextHeight(properties),
+                    height: textHeight,
                 };
-                
+
                 var w = child.size.width * 2;
                 var h = child.size.height * 2;
                 if (w > this._cellSize.width)
@@ -616,10 +624,10 @@ module powerbi {
         }
 
         /**
-        * Register a new label element.
-        * @param {ILabelElement} element The label element to register.
-        * @param {shapes.IRect} rect The label element position rectangle.
-        */
+         * Register a new label element.
+         * @param element The label element to register.
+         * @param rect The label element position rectangle.
+         */
         public add(element: IDataLabelInfo, rect: shapes.IRect) {
             var indexRect = this.getGridIndexRect(rect);
             var grid = this._grid;
@@ -631,10 +639,10 @@ module powerbi {
         }
 
         /**
-        * Checks for conflict of given rectangle in registered elements.
-        * @param {shapes.IRect} rect The rectengle to check.
-        * @return {Boolean} True if conflict is detected.
-        */
+         * Checks for conflict of given rectangle in registered elements.
+         * @param rect The rectengle to check.
+         * @return True if conflict is detected.
+         */
         public hasConflict(rect: shapes.IRect): boolean {
             var indexRect = this.getGridIndexRect(rect);
             var grid = this._grid;
@@ -654,22 +662,22 @@ module powerbi {
         }
 
         /**
-        * Calculates the number of rows or columns in a grid
-        * @param {number} step is the largest label size (width or height)
-        * @param {number} length is the grid size (width or height)
-        * @param {number} minCount is the minimum allowed size
-        * @param {number} maxCount is the maximum allowed size
-        * @return {number} the number of grid rows or columns
-        */
+         * Calculates the number of rows or columns in a grid
+         * @param step is the largest label size (width or height)
+         * @param length is the grid size (width or height)
+         * @param minCount is the minimum allowed size
+         * @param maxCount is the maximum allowed size
+         * @return the number of grid rows or columns
+         */
         private getGridRowColCount(step: number, length: number, minCount: number, maxCount: number): number {
             return Math.min(Math.max(Math.ceil(length / step), minCount), maxCount);
         }
 
         /**
-        * Returns the grid index of a given recangle
-        * @param {shapes.IRect} rect The rectengle to check.
-        * @return {shapes.IThickness} grid index as a thickness object.
-        */
+         * Returns the grid index of a given recangle
+         * @param rect The rectengle to check.
+         * @return grid index as a thickness object.
+         */
         private getGridIndexRect(rect: shapes.IRect): shapes.IThickness {
             var restrict = (n, min, max) => Math.min(Math.max(n, min), max);
             return {

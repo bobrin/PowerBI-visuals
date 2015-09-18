@@ -24,17 +24,20 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="_references.ts"/>
+
 module powerbi.visuals {
+    import ArrayExtensions = jsCommon.ArrayExtensions;
+
     export class DataColorPalette implements IDataColorPalette {
-        private palettes: { [index: string]: D3.Scale.OrdinalScale };
+        private scales: { [index: string]: IColorScale };
         private colors: IColorInfo[];
-        private defaultColors: D3.Scale.OrdinalScale;
 
         /**
-        * Colors used for sentiment visuals, e.g. KPI, Gauge. Since this is only a temporary implementation which will
-        * eventually be superseded by conditional formatting, we don't declare them as part of the theme and instead
-        * use a hardcoded color scheme here until conditional formatting is ready.
-        */
+         * Colors used for sentiment visuals, e.g. KPI, Gauge. Since this is only a temporary implementation which will
+         * eventually be superseded by conditional formatting, we don't declare them as part of the theme and instead
+         * use a hardcoded color scheme here until conditional formatting is ready.
+         */
         private sentimentColors: IColorInfo[] = [
             { value: '#C0433A' }, // Red
             { value: '#E8D62E' }, // Yellow
@@ -43,14 +46,14 @@ module powerbi.visuals {
 
         // Hardcoded values for Color Picker.
         private basePickerColors: IColorInfo[] = [
-            { value: '#FFFFFF' }, 
-            { value: '#000000' }, 
-            { value: '#00B8AA' }, 
-            { value: '#374649' }, 
-            { value: '#FD625E' }, 
-            { value: '#F2C811' }, 
-            { value: '#5F6B6D' }, 
-            { value: '#8AD4EB' }, 
+            { value: '#FFFFFF' },
+            { value: '#000000' },
+            { value: '#00B8AA' },
+            { value: '#374649' },
+            { value: '#FD625E' },
+            { value: '#F2C811' },
+            { value: '#5F6B6D' },
+            { value: '#8AD4EB' },
             { value: '#FE9666' },
             { value: '#A66999' }
         ];
@@ -61,40 +64,73 @@ module powerbi.visuals {
         constructor(colors?: IColorInfo[]) {
             // TODO: Default theme is currently hardcoded. Theme should eventually come from PV and be added as a parameter in the ctor. 
             this.colors = colors || ThemeManager.getDefaultTheme();
-            this.defaultColors = d3.scale.ordinal().range(this.colors);
-            this.palettes = {};
+            this.scales = {};
         }
 
-        public getColor(key: any): IColorInfo {
-            // For now though, just return colors in order.
-            return this.defaultColors(key);
-        }
-
-        public getColorByScale(scaleKey: string, key: string): IColorInfo {
-            var colors = this.palettes[scaleKey];
-            if (colors === undefined) {
-                colors = d3.scale.ordinal().range(this.colors);
-                this.palettes[scaleKey] = colors;
+        public getColorScaleByKey(key: string): IColorScale {
+            var scale = this.scales[key];
+            if (scale === undefined) {
+                scale = this.createScale();
+                this.scales[key] = scale;
             }
 
-            return colors(key);
+            return scale;
+        }
+
+        public getNewColorScale(): IColorScale {
+            return this.createScale();
+        }
+
+        public getColorByIndex(index: number): IColorInfo {
+            debug.assert(index >= 0 && index < this.colors.length, 'index is out of bounds');
+            return this.colors[index];
         }
 
         public getSentimentColors(): IColorInfo[] {
             return this.sentimentColors;
         }
 
-        public getBasePickerColors(): IColorInfo[]{
+        public getBasePickerColors(): IColorInfo[] {
             return this.basePickerColors;
+        }
+
+        private createScale(): IColorScale {
+            return D3ColorScale.createFromColors(this.colors);
+        }
+    }
+
+    export class D3ColorScale implements IColorScale {
+        private scale: D3.Scale.OrdinalScale;
+
+        constructor(scale: D3.Scale.OrdinalScale) {
+            this.scale = scale;
+        }
+
+        public getColor(key: any): IColorInfo {
+            return this.scale(key);
+        }
+
+        public clearAndRotateScale(): void {
+            var offset = this.scale.domain().length;
+            var rotatedColors = ArrayExtensions.rotate(this.scale.range(), offset);
+            this.scale = d3.scale.ordinal().range(rotatedColors);
+        }
+
+        public clone(): IColorScale {
+            return new D3ColorScale(this.scale.copy());
+        }
+
+        public static createFromColors(colors: IColorInfo[]): D3ColorScale {
+            return new D3ColorScale(d3.scale.ordinal().range(colors));
         }
     }
 
     // TODO: When theming support is added, this should be changed into a fully fledged service. For now though we will
-    // declare the Theme code as a private implementation detail inside the DataColorPalette so that the code stays hidden
-    // until it's ready for wider use.
     class ThemeManager {
         private static colorSectorCount = 12;
-
+      
+        // declare the Theme code as a private implementation detail inside the DataColorPalette so that the code stays hidden
+        // until it's ready for wider use.
         private static defaultBaseColors: IColorInfo[] = [
             // First loop
             { value: '#01B8AA' },

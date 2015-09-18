@@ -24,6 +24,8 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="_references.ts"/>
+
 module powerbi {
     export interface IVisualStyle{
         colorPalette: IColorPalette;
@@ -55,17 +57,37 @@ module powerbi {
     }
 
     export interface IDataColorPalette {
-        /** Gets a color based for the specified key value. */
-        getColor(key: any): IColorInfo;
-        getColorByScale(scaleKey: string, key: string): IColorInfo
+        /** Gets the color scale associated with the given key. */
+        getColorScaleByKey(scaleKey: string): IColorScale;
 
-        /** Gets the set of sentiment colors used for visuals such as KPIs
-        * Note: This is only a temporary API so that we can have reasonable color schemes for KPIs
-        * and gauges until the conditional formatting feature is implemented.
-        */
+        /** Gets a fresh color scale with no colors allocated. */
+        getNewColorScale(): IColorScale;
+
+        /** Gets the nth color in the palette. */
+        getColorByIndex(index: number): IColorInfo;
+
+        /**
+         * Gets the set of sentiment colors used for visuals such as KPIs
+         * Note: This is only a temporary API so that we can have reasonable color schemes for KPIs
+         * and gauges until the conditional formatting feature is implemented.
+         */
         getSentimentColors(): IColorInfo[];
 
         getBasePickerColors(): IColorInfo[];
+    }
+
+    export interface IColorScale {
+        /** Gets the color associated with the given key. */
+        getColor(key: any): IColorInfo;
+
+        /**
+         * Clears the current scale, but rotates the colors such that the first color allocated will
+         * the be first color that would have been allocated before clearing the scale. 
+         */
+        clearAndRotateScale(): void;
+
+        /** Returns a copy of the current scale. */
+        clone(): IColorScale;
     }
 
     export interface IColorInfo extends IStyleInfo {

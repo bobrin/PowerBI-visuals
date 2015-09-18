@@ -24,6 +24,8 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="_references.ts"/>
+
 module powerbi.visuals {
     export interface IPoint {
         x: number;
@@ -38,9 +40,9 @@ module powerbi.visuals {
             this.x = x || 0;
             this.y = y || 0;
         }
-	}
+    }
 
-	export interface IRect {
+    export interface IRect {
         left: number;
         top: number;
         width: number;
@@ -320,13 +322,13 @@ module powerbi.visuals.BI.Services.GeocodingManager {
     'use strict';
 
     export var Settings = {
-        // Maximum Bing requests at once. The Bing have limit how many request at once you can do per socket.
+        /** Maximum Bing requests at once. The Bing have limit how many request at once you can do per socket. */
         MaxBingRequest: 6,
 
-        // Maximum cache size of cached geocode data.
+        /** Maximum cache size of cached geocode data. */
         MaxCacheSize: 3000,
 
-        // Maximum cache overflow of cached geocode data to kick the cache reducing.
+        /** Maximum cache overflow of cached geocode data to kick the cache reducing. */
         MaxCacheSizeOverflow: 100,
 
         // Bing Keys and URL
@@ -334,7 +336,7 @@ module powerbi.visuals.BI.Services.GeocodingManager {
         BingUrl: "https://dev.virtualearth.net/REST/v1/Locations?",
         BingUrlGeodata: "https://platform.bing.com/geo/spatial/v1/public/Geodata?",
 
-        // Switch the data result for geodata polygons to by double array instead locations array
+        /** Switch the data result for geodata polygons to by double array instead locations array */
         UseDoubleArrayGeodataResult: true,
         UseDoubleArrayDequeueTimeout: 0,
     };
@@ -343,7 +345,8 @@ module powerbi.visuals.BI.Services.GeocodingManager {
         (url: string, settings: JQueryAjaxSettings): any;
     }
     export var safeCharacters: string = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-";
-    // Used for test mockup    
+    
+    /** Note: Used for test mockup */
     export var BingAjaxCall: BingAjaxService = $.ajax;
 
     export var CategoryTypes = {
@@ -413,15 +416,16 @@ module powerbi.visuals.BI.Services.GeocodingManager {
 
     export interface IGeocodeBoundaryPolygon {
         nativeBing: string;
-        // array of lat/long pairs as [lat1, long1, lat2, long2,...]
+        
+        /** array of lat/long pairs as [lat1, long1, lat2, long2,...] */
         geographic?: Float64Array;
         geographicBounds?: Microsoft.Maps.LocationRect;
 
-        // array of absolute pixel position pairs [x1,y1,x2,y2,...]. It can be used by the client for cache the data. 
+        /** array of absolute pixel position pairs [x1,y1,x2,y2,...]. It can be used by the client for cache the data. */
         absolute?: Float64Array;
         absoluteBounds?: Rect;
 
-        // string of absolute pixel position pairs "x1 y1 x2 y2...". It can be used by the client for cache the data.
+        /** string of absolute pixel position pairs "x1 y1 x2 y2...". It can be used by the client for cache the data. */
         absoluteString?: string;
     }
 
@@ -449,7 +453,7 @@ module powerbi.visuals.BI.Services.GeocodingManager {
         public key: string;
         private _cacheHits: number;
 
-        constructor(query: string = "", category: string  = "") {
+        constructor(query: string = "", category: string = "") {
             this.query = query;
             this.category = category;
             this.key = (this.query + "/" + this.category).toLowerCase();
@@ -492,7 +496,11 @@ module powerbi.visuals.BI.Services.GeocodingManager {
                 }
                 else if (this.query.indexOf(",") === -1 && (entityType === BingEntities.AdminDivision1 || entityType === BingEntities.AdminDivision2)) {
                     queryAdded = true;
-                    url += "&adminDistrict=" + decodeURIComponent(this.query);
+                    try {
+                        url += "&adminDistrict=" + decodeURIComponent(this.query);
+                    } catch (e) {
+                        return null;
+                    }
                 }
                 else {
                     url += "&includeEntityTypes=" + entityType;
@@ -500,7 +508,11 @@ module powerbi.visuals.BI.Services.GeocodingManager {
             }
 
             if (!queryAdded) {
-                url += "&q=" + decodeURIComponent(this.query);
+                try {
+                    url += "&q=" + decodeURIComponent(this.query);
+                } catch (e) {
+                    return null;
+                }
             }
 
             var cultureName = navigator.userLanguage || navigator["language"];
@@ -587,7 +599,7 @@ module powerbi.visuals.BI.Services.GeocodingManager {
             }
 
             activeRequests++;
-			makeRequest(geocodeQueue.shift());
+            makeRequest(geocodeQueue.shift());
         }
     }
 
@@ -611,7 +623,7 @@ module powerbi.visuals.BI.Services.GeocodingManager {
 
         var url = item.query.getUrl();
         if (!url) {
-            completeRequest(item, new Error("Unsupported query."));
+            completeRequest(item, new Error("Unsupported query. " + item.query.query));
         }
 
         BingAjaxCall(url, config).then(
@@ -752,8 +764,10 @@ module powerbi.visuals.BI.Services.MapServices {
         return 256 * Math.pow(2, levelOfDetail);
     }
 
-    // latLongArray is a Float64Array as [lt0, lon0, lat1, long1, lat2, long2,....]
-    // the output is a Float64Array as [x0, y0, x1, y1, x2, y2,....]
+    /**
+     * @param latLongArray - is a Float64Array as [lt0, lon0, lat1, long1, lat2, long2,....]
+     * @returns Float64Array as [x0, y0, x1, y1, x2, y2,....]
+     */
     export function latLongToPixelXYArray(latLongArray: Float64Array, levelOfDetail: number): Float64Array {
         var result = new Float64Array(latLongArray.length);
         for (var i = 0; i < latLongArray.length; i += 2) {
@@ -820,9 +834,11 @@ module powerbi.visuals.BI.Services.MapServices {
             new Microsoft.Maps.Location(southEast.latitude, southEast.longitude));
     }
 
-    // this code is taken from Bing.
-    // see Point Compression Algorithm http://msdn.microsoft.com/en-us/library/jj158958.aspx
-    // see Decompression Algorithm in http://msdn.microsoft.com/en-us/library/dn306801.aspx
+    /**
+     * Note: this code is taken from Bing.
+     *  see Point Compression Algorithm http://msdn.microsoft.com/en-us/library/jj158958.aspx
+     *  see Decompression Algorithm in http://msdn.microsoft.com/en-us/library/dn306801.aspx
+     */
     export function parseEncodedSpatialValueArray(value): Float64Array {
         var list: number[] = [];
         var index = 0;

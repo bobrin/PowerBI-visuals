@@ -24,17 +24,56 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="../_references.ts"/>
+
 module powerbi.visuals {
     export module AnimatorCommon {
-        export var MinervaAnimationDuration = 250;
+        export const MinervaAnimationDuration = 250;
+
+        export function GetAnimationDuration(animator: IGenericAnimator, suppressAnimations: boolean) {
+            return (suppressAnimations || !animator) ? 0 : animator.getDuration();
+        }
     }
 
-    /** We just need to have a non-null animator to allow axis animations in cartesianChart .
-      * Use this temporarily for Line/Scatter until we add more animations (MinervaPlugins only).
-      */
-    export class NullAnimator {
-        public animate(options: any): any
-        {
+    export interface IAnimatorOptions {
+        duration?: number;
+    }
+
+    export interface IAnimationOptions {
+        interactivityService: IInteractivityService;
+    }
+
+    export interface IAnimationResult {
+        failed: boolean;
+    }
+
+    export interface IAnimator<T extends IAnimatorOptions, U extends IAnimationOptions, V extends IAnimationResult> {
+        getDuration(): number;
+        animate(options: U): V;
+    }
+
+    export type IGenericAnimator = IAnimator<IAnimatorOptions, IAnimationOptions, IAnimationResult>;
+
+    /** 
+     * We just need to have a non-null animator to allow axis animations in cartesianChart.
+     * Note: Use this temporarily for Line/Scatter until we add more animations (MinervaPlugins only).
+     */
+    export class BaseAnimator<T extends IAnimatorOptions, U extends IAnimationOptions, V extends IAnimationResult> implements IAnimator<T, U, V> {
+        protected animationDuration: number;
+
+        constructor(options?: T) {
+            if (options && options.duration) {
+                this.animationDuration = options.duration;
+            }
+
+            this.animationDuration = this.animationDuration >= 0 ? this.animationDuration : AnimatorCommon.MinervaAnimationDuration;
+        }
+
+        public getDuration(): number {
+            return this.animationDuration;
+        }
+
+        public animate(options: U): V {
             return null;
         }
     }

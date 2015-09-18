@@ -24,6 +24,8 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="../_references.ts"/>
+
 module powerbi.visuals {
     export interface IListView {
         data(data: any[], dataIdFunction: (d) => {}): IListView;
@@ -53,14 +55,14 @@ module powerbi.visuals {
         viewport: IViewport;
     }
 
-    enum ListViewMode {
+    const enum ListViewMode {
         SVG,
         HTML
     }
 
     /**
      * A UI Virtualized List, that uses the D3 Enter, Update & Exit pattern to update rows.
-     * It can create lists containing either HTML or SVG elements
+     * It can create lists containing either HTML or SVG elements.
      */
     class ListView implements IListView {
         private _dataIdFunction: (d: any) => {};
@@ -74,9 +76,11 @@ module powerbi.visuals {
         private delta: number;
         private mode: ListViewMode;
         private visibleRows: number;
-
-        /* The value indicates the percentage of data already shown
-           in the list view that triggers a loadMoreData call. */
+        
+        /**
+         * The value indicates the percentage of data already shown
+         * in the list view that triggers a loadMoreData call.
+         */
         private static loadMoreDataThreshold = 0.8;
 
         public constructor(options: ListViewOptions, mode: ListViewMode) {
@@ -170,7 +174,8 @@ module powerbi.visuals {
             var translateY = scrollPosition * rowHeight;
             visibleGroupContainer
                 .attr('transform', d => SVGUtil.translate(0, translateY))
-                .style('transform', d => SVGUtil.translateWithPixels(0, translateY));
+                .style('transform', d => SVGUtil.translateWithPixels(0, translateY))
+                .style('-webkit-transform', d => SVGUtil.translateWithPixels(0, translateY));
 
             var position0 = Math.max(0, Math.min(scrollPosition, totalRows - visibleRows + 1)),
                 position1 = position0 + visibleRows;

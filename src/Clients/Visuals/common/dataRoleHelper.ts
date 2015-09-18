@@ -24,10 +24,12 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="../_references.ts"/>
+
 module powerbi.visuals {
 
     export module DataRoleHelper {
-        export function getMeasureIndexOfRole(grouped: DataViewValueColumnGroup[], roleName: string, defaultIndexIfNoRole?: number): number {
+        export function getMeasureIndexOfRole(grouped: DataViewValueColumnGroup[], roleName: string): number {
             if (grouped && grouped.length > 0) {
                 var firstGroup = grouped[0];
                 if (firstGroup.values && firstGroup.values.length > 0) {
@@ -36,9 +38,6 @@ module powerbi.visuals {
                         if (value && value.source) {
                             if (hasRole(value.source, roleName))
                                 return i;
-
-                            if (len > defaultIndexIfNoRole)
-                                return defaultIndexIfNoRole;
                         }
                     }
                 }

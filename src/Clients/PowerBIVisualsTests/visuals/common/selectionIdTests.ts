@@ -24,9 +24,98 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="../../_references.ts"/>
+
 module powerbitests {
     import SelectionId = powerbi.visuals.SelectionId;
+    import SelectionIdBuilder = powerbi.visuals.SelectionIdBuilder;
     import Selector = powerbi.data.Selector;
+
+    describe("SelectionIdBuilder tests", () => {
+        var categoryA = mocks.dataViewScopeIdentity("A");
+        let categoryQueryName = "categoryA";
+        let categoryColumn: powerbi.DataViewCategoryColumn = {
+            source: {
+                queryName: categoryQueryName,
+                displayName: 'testDisplayName'
+            },
+            identity: [categoryA],
+            values: []
+        };
+        var seriesa = mocks.dataViewScopeIdentity("a");
+        let seriesQueryName = "seriesA";
+
+        let seriesColumn: any = {
+            source: {
+                queryName: seriesQueryName,
+                displayName: 'testSeriesDisplayName'
+            }
+        };
+
+        let valueColumn: any = { identity: seriesa };
+
+        var measure1 = "measure1";
+
+        var idA = SelectionId.createWithId(categoryA);
+        var ida = SelectionId.createWithId(seriesa);
+        var id1 = SelectionId.createWithMeasure(measure1);
+        var idAll = SelectionId.createWithIdsAndMeasure(categoryA, seriesa, measure1);
+
+        it("SelectionIdBuilder -- empty", () => {
+            let id = SelectionIdBuilder.builder().createSelectionId();
+            expect(id.getSelector()).toBeNull();
+            expect(id.getSelectorsByColumn()).toEqual({});
+            expect(id.getKey()).toEqual('{"selector":null,"highlight":false}');
+        });
+
+        it("SelectionIdBuilder -- withCategory", () => {
+            let id = SelectionIdBuilder.builder()
+                .withCategory(categoryColumn, 0)
+                .createSelectionId();
+
+            expect(id.getSelector()).toEqual(idA.getSelector());
+            expect(id.getSelectorsByColumn()).toEqual({ dataMap: { categoryA: idA.getSelector()['data'][0] } });
+
+        });
+
+        it("SelectionIdBuilder -- withSeries", () => {
+            let id = SelectionIdBuilder.builder()
+                .withSeries(seriesColumn, valueColumn)
+                .createSelectionId();
+
+            expect(id.getSelector()).toEqual(ida.getSelector());
+            expect(id.getSelectorsByColumn()).toEqual({ dataMap: { seriesA: ida.getSelector()['data'][0] } });
+        });
+
+        it("SelectionIdBuilder -- withMeasure", () => {
+            let id = SelectionIdBuilder.builder()
+                .withMeasure(measure1)
+                .createSelectionId();
+
+            expect(id.getSelector()).toEqual(id1.getSelector());
+            expect(id.getSelectorsByColumn()).toEqual({ metadata: id1.getSelector()['metadata'] });
+        });
+
+        it("SelectionIdBuilder -- category, series, and measure", () => {
+            let id = SelectionIdBuilder.builder()
+                .withCategory(categoryColumn, 0)
+                .withSeries(seriesColumn, valueColumn)
+                .withMeasure(measure1)
+                .createSelectionId();
+            
+            let allSelector = idAll.getSelector();
+            expect(id.getSelector()).toEqual(allSelector);
+            expect(id.getSelectorsByColumn()).toEqual({
+                dataMap: {
+                    categoryA: allSelector['data'][0],
+                    seriesA: allSelector['data'][1]
+                },
+                metadata: allSelector['metadata']
+            });
+
+        });
+
+    });
 
     describe("SelectionId tests", () => {
         var categoryA = mocks.dataViewScopeIdentity("A");
@@ -49,7 +138,7 @@ module powerbitests {
         var idA2 = SelectionId.createWithIdAndMeasure(categoryA, measure2);
         var idB1 = SelectionId.createWithIdAndMeasure(categoryB, measure1);
 
-        it('SelectionId equals single identifier', () => {
+        it("SelectionId equals single identifier", () => {
             expect(idA.equals(SelectionId.createWithId(categoryA))).toBe(true);
             expect(idA.equals(idB)).toBe(false);
             expect(ida.equals(SelectionId.createWithId(seriesa))).toBe(true);
@@ -58,7 +147,7 @@ module powerbitests {
             expect(id1.equals(id2)).toBe(false);
         });
 
-        it('SelectionId equals two identifiers', () => {
+        it("SelectionId equals two identifiers", () => {
             expect(idAa.equals(SelectionId.createWithIds(categoryA, seriesa))).toBe(true);
             expect(idAa.equals(idAb)).toBe(false);
             expect(idAa.equals(idBa)).toBe(false);
@@ -69,7 +158,7 @@ module powerbitests {
             expect(idA1.equals(idAa)).toBe(false);
         });
 
-        it('SelectionId equals different identifiers', () => {
+        it("SelectionId equals different identifiers", () => {
             expect(idA.equals(ida)).toBe(false);
             expect(idA.equals(idAa)).toBe(false);
             expect(idA.equals(idA1)).toBe(false);
@@ -79,7 +168,7 @@ module powerbitests {
             expect(id1.equals(idA1)).toBe(false);
         });
 
-        it('SelectionId includes with category', () => {
+        it("SelectionId includes with category", () => {
             expect(idA.includes(idA)).toBe(true);
             expect(idA.includes(idAb)).toBe(true);
             expect(idA.includes(idA1)).toBe(true);
@@ -88,7 +177,7 @@ module powerbitests {
             expect(idA.includes(id1)).toBe(false);
         });
 
-        it('SelectionId includes with series', () => {
+        it("SelectionId includes with series", () => {
             expect(ida.includes(ida)).toBe(true);
             expect(ida.includes(idAa)).toBe(true);
             expect(ida.includes(idA)).toBe(false);
@@ -96,7 +185,7 @@ module powerbitests {
             expect(ida.includes(id1)).toBe(false);
         });
 
-        it('SelectionId includes with measure', () => {
+        it("SelectionId includes with measure", () => {
             expect(id1.includes(id1)).toBe(true);
             expect(id1.includes(idA1)).toBe(true);
             expect(id1.includes(idA)).toBe(false);
@@ -104,7 +193,7 @@ module powerbitests {
             expect(id1.includes(id2)).toBe(false);
         });
 
-        it('SelectionId includes with two identifiers', () => {
+        it("SelectionId includes with two identifiers", () => {
             expect(idAa.includes(idAa)).toBe(true);
             expect(idAa.includes(idA1)).toBe(false);
             expect(idAa.includes(idA)).toBe(false);
@@ -114,37 +203,37 @@ module powerbitests {
             expect(idA1.includes(idB1)).toBe(false);
         });
 
-        it('SelectionId createNull', () => {
+        it("SelectionId createNull", () => {
             var selectionId = SelectionId.createNull();
             expect(selectionId.getKey()).toEqual(JSON.stringify({ selector: null, highlight: false }));
         });
 
-        it('SelectionId createWithId', () => {
+        it("SelectionId createWithId", () => {
             var selectionId = SelectionId.createWithId(categoryA);
             expect(selectionId.getKey()).toEqual(JSON.stringify({ selector: Selector.getKey({ data: [categoryA] }), highlight: false }));
         });
 
-        it('SelectionId createWithMeasure', () => {
+        it("SelectionId createWithMeasure", () => {
             var selectionId = SelectionId.createWithMeasure(measure1);
             expect(selectionId.getKey()).toEqual(JSON.stringify({ selector: Selector.getKey({ metadata: measure1 }), highlight: false }));
         });
 
-        it('SelectionId createWithIdAndMeasure', () => {
+        it("SelectionId createWithIdAndMeasure", () => {
             var selectionId = SelectionId.createWithIdAndMeasure(categoryA, measure1);
             expect(selectionId.getKey()).toEqual(JSON.stringify({ selector: Selector.getKey({ data: [categoryA], metadata: measure1 }), highlight: false }));
         });
 
-        it('SelectionId createWithIds', () => {
+        it("SelectionId createWithIds", () => {
             var selectionId = SelectionId.createWithIds(categoryA, seriesa);
             expect(selectionId.getKey()).toEqual(JSON.stringify({ selector: Selector.getKey({ data: [categoryA, seriesa] }), highlight: false }));
         });
 
-        it('SelectionId createWithIds: with duplicates',() => {
+        it("SelectionId createWithIds: with duplicates", () => {
             var selectionId = SelectionId.createWithIds(categoryA, categoryA);
             expect(selectionId.getKey()).toEqual(JSON.stringify({ selector: Selector.getKey({ data: [categoryA] }), highlight: false }));
         });
 
-        it('SelectionId createWithIdsAndMeasure',() => {
+        it("SelectionId createWithIdsAndMeasure", () => {
             var selectionId = SelectionId.createWithIdsAndMeasure(categoryA, seriesa, measure1);
             expect(selectionId.getKey()).toEqual(JSON.stringify({ selector: Selector.getKey({ data: [categoryA, seriesa], metadata: measure1 }), highlight: false }));
             selectionId = SelectionId.createWithIdsAndMeasure(undefined, seriesa, measure1);
@@ -155,12 +244,12 @@ module powerbitests {
             expect(selectionId.getKey()).toEqual(JSON.stringify({ selector: Selector.getKey({ data: [categoryA, seriesa] }), highlight: false }));
         });
 
-        it('SelectionId createWithIdsAndMeasure: with duplicates',() => {
+        it("SelectionId createWithIdsAndMeasure: with duplicates", () => {
             var selectionId = SelectionId.createWithIdsAndMeasure(categoryA, categoryA, measure1);
             expect(selectionId.getKey()).toEqual(JSON.stringify({ selector: Selector.getKey({ data: [categoryA], metadata: measure1 }), highlight: false }));
         });
 
-        it('SelectionId createWithHighlight',() => {
+        it("SelectionId createWithHighlight", () => {
             var selectionId = SelectionId.createWithIdsAndMeasure(categoryA, seriesa, measure1);
             expect(selectionId.getKey()).toEqual(JSON.stringify({ selector: Selector.getKey({ data: [categoryA, seriesa], metadata: measure1 }), highlight: false }));
             var selectionIdWithHighlight = SelectionId.createWithHighlight(selectionId);
@@ -168,7 +257,7 @@ module powerbitests {
             expect(selectionIdWithHighlight.getKey()).not.toBe(selectionId.getKey());
         });
 
-        it('SelectionId creates using undefined',() => {
+        it("SelectionId creates using undefined", () => {
             var nullKey = SelectionId.createNull().getKey();
             var ids = SelectionId.createWithIdAndMeasure(undefined, undefined);
             expect(ids.getKey()).toEqual(nullKey);

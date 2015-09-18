@@ -4,50 +4,23 @@ The Microsoft Power BI visuals project provides high quality data visualizations
 
 ## What is included
 
-1. `build` folder representing pre-built version of Power BI visuals library so that you can start using them right away.
-2. `src` folder includes project source code for your experiments and if you will desire to create a new visual.
-3. `src\Clients\PowerBIVisualsPlayground` is a sample application which could be used to try the existing visualization types or as an example how to run visuals you create.
+1. Source code of all the visuals used in Power BI.
+2. A Playground app to help you try out the existing visuals, and experiment with the ones you have created.
 
-## How to Engage, Contribute and Provide Feedback
-
-There are many ways in which you can contribute.  
- 
-We plan to accept community code contributions including new chart types, bug fixes, and additional features for existing chart types.  We're still working out the contribution guidelines. Hold tight, we'll update you here when we've formalized the guidelines.   
- 
-In the meantime, you can contribute to Power BI Visuals in a few different ways:
-* Submit bugs by opening an Issue.
-* Contribute to discussions on [StackOverflow](http://stackoverflow.com/questions/tagged/powerbi).
-* Follow the [Power BI Developer](http://blogs.msdn.com/powerbidev) blog for updates.
-
-## Documentation
-
-*  [Getting started](https://github.com/Microsoft/PowerBI-visuals/wiki)
-*  [API specification](http://microsoft.github.io/PowerBI-visuals/docs/interfaces/powerbi.ivisual.html)
-*  [Homepage](https://powerbi.microsoft.com/)
-*  [Playground (see our visuals live in action)](http://microsoft.github.io/PowerBI-visuals/playground/index.html)
-
-## How To Build and Run
+## Getting Started
 
 ### Prerequisites
 
-To build the library and run sample application you will need:
+To build the library and run the sample application you will need:
 
-- A Windows 8.1/Windows 10 64-bit machine with minimum 4 GB of RAM
-- [Visual Studio Community 2013](https://www.visualstudio.com/en-us/news/vs2013-community-vs.aspx) (Free for use)
-- [TypeScript 1.4 for Visual Studio 2013](https://visualstudiogallery.msdn.microsoft.com/2d42d8dc-e085-45eb-a30b-3f7d50d55304)
-- [Git](http://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
-- [NodeJS](https://nodejs.org/download/)
+- [Git](http://git-scm.com/book/en/v2/Getting-Started-Installing-Git#Installing-on-Windows)
+- [Node.js](https://nodejs.org/download/)
+- Recommended IDE - [Visual Studio Community 2015](https://www.visualstudio.com/vs-2015-product-editions) (Free for use)
+ -  Be sure to install the "Microsoft Web Developer Tools" optional feature. To install, go to Add/Remove Programs, right-click on Visual Studio, select Change, then Modify. Check the "Microsoft Web Developer Tools" checkbox and finish the install. 
+ -  You can install [VSIX Package](https://github.com/Microsoft/PowerBI-visuals/blob/master/tools/VSIXExtensions/VisualTemplate.vsix?raw=true) and use Visual Studio Template from it to create new Visual.
 
-In order to run unit tests you will also need:
-- [Chutzpah JavaScript test runner](https://github.com/mmanela/chutzpah):
- - Command Line Runner [nuget](https://www.nuget.org/packages/Chutzpah) 
- - [chocolatey](http://chocolatey.org/packages/chutzpah)
-- [jasmine-jquery](https://raw.github.com/velesin/jasmine-jquery/master/lib/jasmine-jquery.js) that should be placed to "PowerBI-Visuals\src\Clients\Externals\ThirdPartyIP\JasmineJQuery\"
-
-
-### Build Power BI visuals
-
-In order to build the Power BI visuals, ensure that you have [Git](http://git-scm.com/downloads) and [Node.js](http://nodejs.org/) installed.
+### One-Time Setup
+In order to build the Power BI visuals, ensure that you have [Git](http://git-scm.com/book/en/v2/Getting-Started-Installing-Git#Installing-on-Windows) and [Node.js](http://nodejs.org/download/) installed.
 
 Clone a copy of the repo:
 
@@ -64,18 +37,60 @@ cd PowerBI-visuals
 Install dev dependencies:
 
 ```
-npm install
+npm install  # This command will install Gulp and all necessary modules
 ```
+
+## How to Engage, Contribute and Provide Feedback
+
+There are many ways in which you can contribute to Power BI visuals:
+* You can contribute fixes and new visuals to this repo, read the [contribution guildelines](https://github.com/Microsoft/PowerBI-visuals/blob/master/CONTRIBUTING.md).
+* Submit bugs by opening a GitHub Issue [here](https://github.com/Microsoft/PowerBI-visuals/issues).
+* Contribute to discussions on [StackOverflow](http://stackoverflow.com/questions/tagged/powerbidev).
+* Follow the [Power BI Developer](http://blogs.msdn.com/powerbidev) blog for updates.
+* Follow Power BI on Twitter [@mspowerbi](http://twitter.com/mspowerbi).
+
+## Documentation
+
+*  [Getting started](https://github.com/Microsoft/PowerBI-visuals/wiki)
+*  [API specification](http://microsoft.github.io/PowerBI-visuals/interfaces/powerbi.ivisual.html)
+*  [Power BI visuals playground (see our visuals live in action)](http://microsoft.github.io/PowerBI-visuals/playground/index.html)
+*  [Power BI Homepage](https://powerbi.microsoft.com/)
+
+## Additional instructions
+
+### Running PlayGround from Visual Studio
+
+Make sure you first follow the [Prerequisites](https://github.com/Microsoft/PowerBI-visuals#prerequisites) & [Onetime Setup](https://github.com/Microsoft/PowerBI-visuals#one-time-setup)
+
+To run sample app:
+
+1. Open `src\PowerBIVisuals.sln` in Visual Studio then under `src\Clients\PowerBIVisualsPlayground`, right click on `index.html` file and select 'Set As Start Page'.
+
+2. Right click on the project root folder then select 'Property Pages'. In the window opened select 'Build' and then in 'Before running startup page' select 'No Build'.
+
+3. Task runner should have kicked off an incremental build task, which will build each time you make changes. **NOTE:** Sometimes the task runner might kick off two of these tasks at the same time, just close one of them.
+
+4. Ctrl + F5 to launch the Playground.
+ 
+### Running Build and Test
 
 Use the following commands to build and test:
 ```
-npm run build                               # Build PowerBI Visuals into `built` folder
-npm test                                    # Run unit tests (requires 'chutzpah', see Prerequisites)
+gulp build  # Build Power BI visuals into `build` folder
+gulp test  # Run unit tests (requires 'PhantomJS', see below)
 ```
 
-### Run Sample App
+### Installing PhantomJS
+You will also need to do the following to run unit tests:
 
-To run sample app open `src\PowerBIVisualsClient.sln` in Visual Studio and then run *PowerBIVisualsPlayground* project.
+Install [PhantomJS](http://phantomjs.org/) (PhantomJS is a headless WebKit scriptable with a JavaScript API. It has fast and native support for various web standards: DOM handling, CSS selector, JSON, Canvas, and SVG.).
+
+For Windows OS PhantomJS will be installed when you call `gulp test` command. Also you can install PhantomJS using this command:
+
+```
+gulp install:phantomjs
+```
+As result, local version of the PhantomJS will be downloaded and installed into the project. For other OS you have to install PhantomJS manually.
 
 ### Copyrights
 

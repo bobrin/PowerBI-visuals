@@ -24,8 +24,12 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="../_references.ts"/>
+
 module powerbi.visuals {
     import Selector = powerbi.data.Selector;
+    import SelectorsByColumn = powerbi.SelectorsByColumn;
+    import SelectorForColumn = powerbi.SelectorForColumn;
 
     /**
      * A combination of identifiers used to uniquely identify
@@ -33,6 +37,8 @@ module powerbi.visuals {
      */
     export class SelectionId {
         private selector: Selector;
+        // This is a new data structure to support drilling -- in the long term it should replace the 'selector' field
+        private selectorsByColumn: SelectorsByColumn;
         private key: string;
 
         public highlight: boolean;
@@ -49,8 +55,10 @@ module powerbi.visuals {
             }
             return this.highlight === other.highlight &&  Selector.equals(this.selector, other.selector);
         }
-
-        /** Checks equality against other for all identifiers existing in this */
+        
+        /**
+         * Checks equality against other for all identifiers existing in this.
+         */
         public includes(other: SelectionId, ignoreHighlight: boolean = false): boolean {
             var thisSelector = this.selector;
             var otherSelector = other.selector;
@@ -80,8 +88,10 @@ module powerbi.visuals {
         public getKey(): string {
             return this.key;
         }
-
-        /** Temporary workaround since a few things currently rely on this, but won't need to. */
+        
+        /**
+         * Temporary workaround since a few things currently rely on this, but won't need to.
+         */
         public hasIdentity(): boolean {
             return (this.selector && !!this.selector.data);
         }
@@ -90,12 +100,16 @@ module powerbi.visuals {
             return this.selector;
         }
 
+        public getSelectorsByColumn() {
+            return this.selectorsByColumn;
+        }
+
         public static createNull(highlight: boolean = false): SelectionId {
             return new SelectionId(null, highlight);
         }
 
         public static createWithId(id: DataViewScopeIdentity, highlight: boolean = false): SelectionId {
-            var selector: powerbi.data.Selector = null;
+            var selector: Selector = null;
             if (id) {
                 selector = {
                     data: [id]
@@ -105,10 +119,15 @@ module powerbi.visuals {
         }
 
         public static createWithMeasure(measureId: string, highlight: boolean = false): SelectionId {
-            var selector: powerbi.data.Selector = {};
-            if (measureId)
-                selector.metadata = measureId;
-            return new SelectionId(selector, highlight);
+            debug.assertValue(measureId, 'measureId');
+
+            var selector: Selector = {
+                metadata: measureId
+            };
+
+            var selectionId = new SelectionId(selector, highlight);
+            selectionId.selectorsByColumn = { metadata: measureId };
+            return selectionId;
         }
 
         public static createWithIdAndMeasure(id: DataViewScopeIdentity, measureId: string, highlight: boolean = false): SelectionId {
@@ -120,11 +139,30 @@ module powerbi.visuals {
                 selector.metadata = measureId;
             if (!id && !measureId)
                 selector = null;
-            return new SelectionId(selector, highlight);
+
+            var selectionId = new SelectionId(selector, highlight);
+
+            return selectionId;
+        }
+
+        public static createWithIdAndMeasureAndCategory(id: DataViewScopeIdentity, measureId: string, queryName: string, highlight: boolean = false): SelectionId {
+            var selectionId = this.createWithIdAndMeasure(id, measureId, highlight);
+
+            if (selectionId.selector) {
+                selectionId.selectorsByColumn = {};
+                if (id && queryName) {
+                    selectionId.selectorsByColumn.dataMap = {};
+                    selectionId.selectorsByColumn.dataMap[queryName] = id;
+                }
+                if (measureId)
+                    selectionId.selectorsByColumn.metadata = measureId;
+            }
+
+            return selectionId;
         }
 
         public static createWithIds(id1: DataViewScopeIdentity, id2: DataViewScopeIdentity, highlight: boolean = false): SelectionId {
-            var selector: powerbi.data.Selector = null;
+            var selector: Selector = null;
             var selectorData = SelectionId.idArray(id1, id2);
             if (selectorData)
                 selector = { data: selectorData };
@@ -133,7 +171,7 @@ module powerbi.visuals {
         }
 
         public static createWithIdsAndMeasure(id1: DataViewScopeIdentity, id2: DataViewScopeIdentity, measureId: string, highlight: boolean = false): SelectionId {
-            var selector: powerbi.data.Selector = {};
+            var selector: Selector = {};
             var selectorData = SelectionId.idArray(id1, id2);
             if (selectorData)
                 selector.data = selectorData;
@@ -143,6 +181,31 @@ module powerbi.visuals {
             if (!id1 && !id2 && !measureId)
                 selector = null;
             return new SelectionId(selector, highlight);
+        }
+
+        public static createWithSelectorForColumnAndMeasure(dataMap: SelectorForColumn, measureId: string, highlight: boolean = false): SelectionId {
+
+            var selectionId: visuals.SelectionId;
+            var keys = Object.keys(dataMap);
+            if (keys.length === 2) {
+                selectionId = this.createWithIdsAndMeasure(<DataViewScopeIdentity>dataMap[keys[0]], <DataViewScopeIdentity>dataMap[keys[1]], measureId, highlight);
+            } else if (keys.length === 1) {
+                selectionId = this.createWithIdsAndMeasure(<DataViewScopeIdentity>dataMap[keys[0]], null, measureId, highlight);
+            } else {
+                selectionId = this.createWithIdsAndMeasure(null, null, measureId, highlight);
+            }
+
+            var selectorsByColumn: SelectorsByColumn = {};
+            if (!_.isEmpty(dataMap))
+                selectorsByColumn.dataMap = dataMap;
+            if (measureId)
+                selectorsByColumn.metadata = measureId;
+            if (!dataMap && !measureId)
+                selectorsByColumn = null;
+
+            selectionId.selectorsByColumn = selectorsByColumn;
+
+            return selectionId;
         }
 
         public static createWithHighlight(original: SelectionId): SelectionId {
@@ -161,6 +224,50 @@ module powerbi.visuals {
                     data.push(id2);
                 return data;
             }
+        }
+    }
+
+    /**
+     * This class is designed to simplify the creation of SelectionId objects
+     * It allows chaining to build up an object before calling 'create' to build a SelectionId
+     */
+    export class SelectionIdBuilder {
+        private dataMap: SelectorForColumn;
+        private measure: string;
+
+        public static builder(): SelectionIdBuilder {
+            return new SelectionIdBuilder();
+        }
+
+        public withCategory(categoryColumn: DataViewCategoryColumn, index: number): SelectionIdBuilder {
+            if (categoryColumn && categoryColumn.source && categoryColumn.source.queryName && categoryColumn.identity)
+                this.ensureDataMap()[categoryColumn.source.queryName] = categoryColumn.identity[index];
+            
+            return this;
+        }
+
+        public withSeries(seriesColumn: DataViewValueColumns, valueColumn: DataViewValueColumn | DataViewValueColumnGroup): SelectionIdBuilder {
+            if (seriesColumn && seriesColumn.source && seriesColumn.source.queryName && valueColumn)
+                this.ensureDataMap()[seriesColumn.source.queryName] = valueColumn.identity;
+
+            return this;
+        }
+
+        public withMeasure(measureId: string): SelectionIdBuilder {
+            this.measure = measureId;
+
+            return this;
+        }
+
+        public createSelectionId(): SelectionId {
+            return SelectionId.createWithSelectorForColumnAndMeasure(this.ensureDataMap(), this.measure);
+        }
+
+        private ensureDataMap(): SelectorForColumn {
+            if (!this.dataMap)
+                this.dataMap = {};
+
+            return this.dataMap;
         }
     }
 }

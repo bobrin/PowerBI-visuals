@@ -24,6 +24,8 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="../_references.ts"/>
+
 module powerbitests {
     import TooltipBuilder = powerbi.visuals.TooltipBuilder;
     import TooltipManager = powerbi.visuals.TooltipManager;
@@ -31,11 +33,9 @@ module powerbitests {
     import ValueType = powerbi.ValueType;
     import SVGUtil = powerbi.visuals.SVGUtil;
 
-    describe("Tooltip", () => {
+    powerbitests.mocks.setLocale();
 
-        beforeEach(() => {
-            powerbitests.mocks.setLocale(powerbi.common.createLocalizationService());
-        });
+    describe("Tooltip", () => {
 
         it('Tooltip instance created', () => {
             expect(TooltipManager.ToolTipInstance).toBeDefined();
@@ -53,9 +53,6 @@ module powerbitests {
         //var timerCallback: jasmine.Spy;
 
         beforeEach(() => {
-            var localizationService: powerbi.common.ILocalizationService = powerbi.common.createLocalizationService();
-            powerbi.common.localize = localizationService;
-            powerbitests.mocks.setLocale(localizationService);
 
             //timerCallback = jasmine.createSpy("timerCallback");
             //jasmine.clock().install();
@@ -275,6 +272,18 @@ module powerbitests {
             expect(spyEvent).toHaveBeenTriggered();
         });
 
+        it("Touch click should ignore immediate mouseover event.", (done) => {
+            hideTooltip();
+            emulateTouchClick();
+            emulateShowTooltip();
+
+            setTimeout(() => {
+                var visibility = getTooltipVisibility();
+                expect(visibility).toEqual('hidden');
+                done();
+            }, 513);
+        });
+
         it('tooltip is visible after 200ms',(done) => {
             hideTooltip();
 
@@ -326,6 +335,19 @@ module powerbitests {
             d3Element.node().dispatchEvent(evt);
         }
 
+        function emulateTouchClick() {
+            // Simulate a touch event using 'touchstart' and 'touchend'
+            var evt: any = document.createEvent("TouchEvent");
+            evt.initEvent("touchstart", true, true);
+            evt.eventName = "touchstart";
+            d3Element.node().dispatchEvent(evt);
+
+            var evt2: any = document.createEvent("TouchEvent");
+            evt2.initEvent("touchend", true, true);
+            evt2.eventName = "touchend";
+            d3Element.node().dispatchEvent(evt2);
+        }
+
         function getTooltipVisibility() {
             var tooltipContainer = $('.tooltip-container');
             return tooltipContainer.length > 0 ? tooltipContainer.css("visibility") : "hidden";
@@ -355,6 +377,7 @@ module powerbitests {
     });
 
     describe("Tooltip Builder tests",() => {
+
         it('createTooltipInfo: category & measure',() => {
             var columns: powerbi.DataViewMetadataColumn[] = [
                 {
@@ -389,12 +412,9 @@ module powerbitests {
 
             var tooltipInfo = TooltipBuilder.createTooltipInfo(
                 null,
-                dataView.categorical.categories,
+                dataView.categorical,
                 'abc',
-                dataView.categorical.values,
-                123.321,
-                [{ value: 123.321, metadata: dataView.categorical.values[0] }],
-                0);
+                123.321);
 
             expect(tooltipInfo).toEqual([
                 { displayName: 'cat', value: 'abc' },
@@ -433,19 +453,17 @@ module powerbitests {
                             source: columns[2],
                             values: [345, 456],
                             identity: mocks.dataViewScopeIdentity("DEF"),
-                        }])
+                        }],
+                        undefined,
+                        columns[1])
                 }
             };
-            dataView.categorical.values.source = columns[1];
 
             var tooltipInfo = TooltipBuilder.createTooltipInfo(
                 null,
-                dataView.categorical.categories,
+                dataView.categorical,
                 'abc',
-                dataView.categorical.values,
-                123.321,
-                [{ value: 123.321, metadata: dataView.categorical.values[0] }],
-                0);
+                123.321);
 
             expect(tooltipInfo).toEqual([
                 { displayName: 'cat', value: 'abc' },
@@ -487,9 +505,8 @@ module powerbitests {
 
             var tooltipInfo = TooltipBuilder.createTooltipInfo(
                 null,
-                dataView.categorical.categories,
+                dataView.categorical,
                 'abc',
-                dataView.categorical.values,
                 123.321);
 
             expect(tooltipInfo).toEqual([
